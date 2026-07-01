@@ -81,8 +81,8 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
 
         {/* Growth line + timeline along the base */}
         <div className="absolute inset-x-0 bottom-0 h-[34%]">
-          <GrowthLine series={series} />
-          <Timeline series={series} />
+          <GrowthLine series={series} progress={t} />
+          <Timeline series={series} progress={t} />
         </div>
 
         {/* Vignette to seat the card */}
