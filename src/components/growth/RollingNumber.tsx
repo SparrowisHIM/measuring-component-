@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
 
-// 0-9 then a trailing 0 so the forward roll wraps seamlessly (9 -> 0).
-const STRIP = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+// Descending, with a leading 0, so counting up rolls the wheel *downward*
+// (each higher digit drops in from the top) and 9 -> 0 wraps without a seam.
+const STRIP = [0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
 const CELL_W = "0.62em";
 const COMMA_W = "0.3em";
 
@@ -20,9 +21,11 @@ function Wheel({
 }) {
   const power = 10 ** place;
   // Position 0..10 within the 11-cell strip; % keeps it size-independent.
+  // k = 10 - pos maps onto the descending strip so higher digits enter from top.
   const y = useTransform(value, (v) => {
     const pos = (((v / power) % 10) + 10) % 10;
-    return `${-(pos / STRIP.length) * 100}%`;
+    const k = 10 - pos;
+    return `${-(k / STRIP.length) * 100}%`;
   });
 
   return (
