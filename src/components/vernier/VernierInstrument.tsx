@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useEffect, useRef } from "react";
+import { animate, AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useScrub } from "./useScrub";
 import { useSample } from "./useSample";
 import { useMilestones } from "./useMilestones";
@@ -14,15 +14,33 @@ const FINE_STEP = 0.02;
 const PAGE_STEP = 0.1;
 
 export function VernierInstrument({ series = followers }: { series?: MetricSeries }) {
+  const reduceMotion = useReducedMotion();
   const scrub = useScrub(0);
   const sample = useSample(series, scrub.progress);
   const pulses = useMilestones(series, scrub.progress);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const lastY = useRef(0);
+  const intro = useRef<ReturnType<typeof animate> | null>(null);
+  const stopIntro = useCallback(() => {
+    intro.current?.stop();
+    intro.current = null;
+  }, []);
+
+  // Auto-play the reading once on load to reveal the instrument, then hand
+  // control to the visitor. Skipped when reduced motion is requested.
+  useEffect(() => {
+    if (reduceMotion) return;
+    intro.current = animate(scrub.target, 1, {
+      duration: 3.2,
+      ease: [0.22, 0.61, 0.36, 1],
+    });
+    return () => stopIntro();
+  }, [reduceMotion, scrub.target, stopIntro]);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      stopIntro();
       switch (e.key) {
         case "ArrowUp":
         case "ArrowRight":
@@ -49,14 +67,18 @@ export function VernierInstrument({ series = followers }: { series?: MetricSerie
       }
       e.preventDefault();
     },
-    [scrub],
+    [scrub, stopIntro],
   );
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    dragging.current = true;
-    lastY.current = e.clientY;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      stopIntro();
+      dragging.current = true;
+      lastY.current = e.clientY;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [stopIntro],
+  );
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
@@ -77,9 +99,10 @@ export function VernierInstrument({ series = followers }: { series?: MetricSerie
 
   const onWheel = useCallback(
     (e: React.WheelEvent) => {
+      stopIntro();
       scrub.nudge(e.deltaY / 900);
     },
-    [scrub],
+    [scrub, stopIntro],
   );
 
   return (
@@ -99,12 +122,13 @@ export function VernierInstrument({ series = followers }: { series?: MetricSerie
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onWheel={onWheel}
-      className="relative grid w-full max-w-3xl cursor-grab touch-none select-none grid-cols-[minmax(0,1fr)_120px_minmax(0,1.4fr)] items-center gap-6 rounded-[var(--radius)] outline-none focus-visible:ring-1 focus-visible:ring-brass/60 active:cursor-grabbing"
+      className="relative grid w-full max-w-3xl origin-center cursor-grab touch-none select-none grid-cols-[minmax(0,1fr)_120px_minmax(0,1.4fr)] items-center gap-4 rounded-[var(--radius)] outline-none focus-visible:ring-1 focus-visible:ring-brass/60 active:cursor-grabbing sm:gap-6 max-sm:scale-[0.84] max-[380px]:scale-[0.68]"
     >
       {/* Milestone pulses — a brass ring and rising tag when the reading crosses a round number */}
       <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
         <AnimatePresence>
-          {pulses.map((p) => (
+          {!reduceMotion &&
+            pulses.map((p) => (
             <div key={p.id} className="absolute flex flex-col items-center">
               <motion.span
                 className="absolute h-40 w-40 rounded-full border border-brass/70"
