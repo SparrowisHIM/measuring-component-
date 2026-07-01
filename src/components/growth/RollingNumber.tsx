@@ -88,7 +88,13 @@ export function RollingNumber({ value, max }: { value: MotionValue<number>; max:
   return (
     <span
       className="tabular flex items-center justify-center font-semibold leading-none text-bone"
-      style={{ fontSize: "clamp(3.5rem, 13vw, 10rem)", letterSpacing: "-0.03em" }}
+      style={{
+        fontSize: "clamp(3.5rem, 13vw, 10rem)",
+        letterSpacing: "-0.03em",
+        // Hide any wheel bleed at the very top/bottom during a roll.
+        maskImage: "linear-gradient(to bottom, transparent 0%, #000 11%, #000 89%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 11%, #000 89%, transparent 100%)",
+      }}
       aria-hidden
     >
       {cells}

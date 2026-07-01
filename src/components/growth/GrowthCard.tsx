@@ -48,30 +48,33 @@ export function GrowthCard({ data = followers, className = "" }: GrowthCardProps
     setLabel((prev) => (prev === next ? prev : next));
   });
 
-  // Scrub geometry: map pointer X across the inset scrub surface to 0..1.
+  // Inspect by month: scrubbing snaps to the nearest data point so the
+  // reading always lands on a real month's exact value with clean digits.
+  const last = data.points.length - 1;
+  const snap = useCallback((frac: number) => Math.round(frac * last) / last, [last]);
+
   const overlayRef = useRef<HTMLDivElement>(null);
   const scrubFromX = useCallback(
     (clientX: number) => {
       const el = overlayRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      scrubTo((clientX - r.left) / r.width);
+      scrubTo(snap((clientX - r.left) / r.width));
     },
-    [scrubTo],
+    [scrubTo, snap],
   );
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const step = 1 / (data.points.length - 1);
-      const cur = progress.get();
+      const idx = Math.round(progress.get() * last);
       switch (e.key) {
         case "ArrowRight":
         case "ArrowUp":
-          scrubTo(cur + step);
+          scrubTo(Math.min(last, idx + 1) / last);
           break;
         case "ArrowLeft":
         case "ArrowDown":
-          scrubTo(cur - step);
+          scrubTo(Math.max(0, idx - 1) / last);
           break;
         case "Home":
           scrubTo(0);
@@ -84,7 +87,7 @@ export function GrowthCard({ data = followers, className = "" }: GrowthCardProps
       }
       e.preventDefault();
     },
-    [data.points.length, progress, scrubTo],
+    [last, progress, scrubTo],
   );
 
   return (
