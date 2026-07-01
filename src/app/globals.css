@@ -17,15 +17,16 @@
   --bone-dim: #9a978d; /* secondary labels */
   --bone-faint: #5c5b56; /* tick marks, faint scale */
 
-  /* Accent — brass, heated by progress */
-  --brass: #c8a24b; /* cold engraved brass */
-  --brass-hot: #f6d486; /* warmed brass */
-  --incandescent: #fff4e0; /* white-hot milestone peak */
+  /* Accent — warm gold, heated by growth */
+  --brass: #d9a441; /* gold */
+  --brass-hot: #ffcf7a; /* warm gold */
+  --ember: #ff8a3d; /* orange ember */
+  --incandescent: #fff3df; /* white-hot payoff */
 
   /* Live reactive channel (0 = cold, 1 = incandescent). Driven at runtime. */
   --heat: 0;
 
-  --radius: 18px;
+  --radius: 22px;
 }
 
 @theme inline {
@@ -42,6 +43,7 @@
 
   --color-brass: var(--brass);
   --color-brass-hot: var(--brass-hot);
+  --color-ember: var(--ember);
   --color-incandescent: var(--incandescent);
 
   --font-display: var(--font-space-grotesk);

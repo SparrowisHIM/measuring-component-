@@ -15,9 +15,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vernier — a measuring instrument",
+  title: "Growth — 100 to 10,000 followers",
   description:
-    "An interactive precision instrument that measures a metric over time. Scrub the vernier to watch the reading climb and the brass run hot.",
+    "A cinematic, self-playing growth component. Watch the follower count build from 100 to 10,000 as the timeline lights up and the frame runs warm.",
 };
 
 export default function RootLayout({
