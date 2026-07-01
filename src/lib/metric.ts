@@ -63,16 +63,33 @@ export type Sample = {
   label: string;
 };
 
+/** Continuous (unrounded) reading at a normalized progress value. */
+export function interpolateValue(series: MetricSeries, progress: number): number {
+  const pts = series.points;
+  const last = pts.length - 1;
+  const position = clamp01(progress) * last;
+  const index = Math.min(last - 1, Math.floor(position));
+  const frac = position - index;
+  return pts[index].value + (pts[index + 1].value - pts[index].value) * frac;
+}
+
 /** Sample the series at a normalized progress value (0..1). */
 export function sampleSeries(series: MetricSeries, progress: number): Sample {
   const pts = series.points;
   const last = pts.length - 1;
   const position = clamp01(progress) * last;
   const index = Math.min(last - 1, Math.floor(position));
-  const frac = position - index;
-  const value = Math.round(pts[index].value + (pts[index + 1].value - pts[index].value) * frac);
-  return { value, position, index, label: pts[Math.round(position)].label };
+  return {
+    value: Math.round(interpolateValue(series, progress)),
+    position,
+    index,
+    label: pts[Math.round(position)].label,
+  };
 }
+
+/** Largest value the series reaches — sizes the odometer. */
+export const seriesMax = (series: MetricSeries) =>
+  series.points[series.points.length - 1].value;
 
 /** Highest milestone the reading has reached at this value. */
 export function reachedMilestone(series: MetricSeries, value: number): number | null {

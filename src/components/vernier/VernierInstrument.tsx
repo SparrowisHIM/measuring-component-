@@ -5,6 +5,7 @@ import { useScrub } from "./useScrub";
 import { useSample } from "./useSample";
 import { VernierTrack } from "./VernierTrack";
 import { VernierRuler } from "./VernierRuler";
+import { VernierReadout } from "./VernierReadout";
 import { followers, formatValue, type MetricSeries } from "@/lib/metric";
 
 const FINE_STEP = 0.02;
@@ -106,15 +107,7 @@ export function VernierInstrument({ series = followers }: { series?: MetricSerie
       </div>
 
       {/* Right — the readout */}
-      <div className="flex flex-col gap-2 py-4">
-        <span className="panel-label">{series.label}</span>
-        <span className="tabular text-5xl font-semibold text-bone">
-          {formatValue(sample.value)}
-        </span>
-        <span className="font-mono text-xs text-bone-dim">
-          {series.owner.name} · {series.owner.handle}
-        </span>
-      </div>
+      <VernierReadout series={series} progress={scrub.progress} />
     </div>
   );
 }
