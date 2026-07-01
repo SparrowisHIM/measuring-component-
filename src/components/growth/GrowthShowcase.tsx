@@ -1,17 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { motion, useMotionValueEvent } from "motion/react";
-import {
-  followers,
-  formatValue,
-  interpolateValue,
-  seriesMax,
-  type MetricSeries,
-} from "@/lib/metric";
+import { useSyncExternalStore } from "react";
+import { motion, useTransform } from "motion/react";
+import { followers, formatValue, interpolateValue, seriesMax, type MetricSeries } from "@/lib/metric";
 import { useGrowthPlayback, type Phase } from "./useGrowthPlayback";
 import { GrowthLine } from "./GrowthLine";
 import { ProfileCard } from "./ProfileCard";
+import { RollingNumber } from "./RollingNumber";
 import { Timeline } from "./Timeline";
 
 const noopSubscribe = () => () => {};
@@ -25,22 +20,10 @@ function useShowcase() {
   );
 }
 
-/** Live, rounded reading rendered as plain text (upgraded to reels next). */
-function LiveCount({
-  series,
-  t,
-}: {
-  series: MetricSeries;
-  t: ReturnType<typeof useGrowthPlayback>["t"];
-}) {
-  const [v, setV] = useState(() => Math.round(interpolateValue(series, t.get())));
-  useMotionValueEvent(t, "change", (p) => setV(Math.round(interpolateValue(series, p))));
-  return <>{formatValue(v)}</>;
-}
-
 export function GrowthShowcase({ series = followers }: { series?: MetricSeries }) {
   const showcase = useShowcase();
   const { t, phase } = useGrowthPlayback();
+  const value = useTransform(t, (p) => interpolateValue(series, p));
   const dim = phase === "outro";
   const revealed: Phase[] = ["intro", "growing", "payoff"];
   const shown = revealed.includes(phase);
@@ -89,12 +72,7 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
           animate={{ opacity: shown ? 1 : 0, scale: shown ? 1 : 0.98 }}
           transition={{ duration: 0.7, ease: "easeOut", delay: phase === "intro" ? 0.25 : 0 }}
         >
-          <span
-            className="tabular font-semibold leading-none text-bone"
-            style={{ fontSize: "clamp(3.5rem, 13vw, 10rem)", letterSpacing: "-0.03em" }}
-          >
-            <LiveCount series={series} t={t} />
-          </span>
+          <RollingNumber value={value} max={goal} />
           <span className="mt-4 font-display text-lg font-medium tracking-wide text-bone-dim sm:text-xl">
             {series.label}
           </span>
