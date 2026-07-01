@@ -1,84 +1,82 @@
-# Vernier — a measuring instrument
+# Growth — 100 → 10,000 followers
 
-An interactive component that measures a metric over time and lets you **scrub
-through it like a precision instrument**. Grab the knob and drag, scroll, or
-arrow‑key your way along the timeline: an engraved brass wire rubber‑bands
-around the handle, a mechanical odometer rolls the reading, and the whole
-instrument runs hotter as the value climbs toward its milestone.
+A cinematic, self‑playing growth component. The follower count builds from
+**100 to 10,000** as the timeline lights up month by month, embers lift off the
+rail and feed into the number, and the whole frame runs warmer the higher it
+climbs — pausing on a satisfying payoff before looping cleanly.
 
-Reworked from a reference concept into a metrology aesthetic — brass engraving
-on warm slate that heats toward incandescent, rather than the usual neon‑on‑black.
+Built as a stop‑scroll social/dashboard moment: dark, premium, warm gold, with
+the number as the hero and light as the story.
+
+## The idea
+
+Growth told as one take, in three acts:
+
+1. **Start small** — the profile and a quiet `100` fade in.
+2. **Build momentum** — the growth line draws left→right, month nodes ignite in
+   sequence, embers rise into the number, and the count surges (the data is an
+   S‑curve, so it *feels* like acceleration, not a linear tick).
+3. **Arrive** — at **10,000** a warm bloom swells and holds, the number takes a
+   breath, and the reading settles to **10,000 Followers · as of Jun 2025**
+   before a dimmed, intentional loop.
 
 ## Highlights
 
-- **One synchronized system.** A single spring‑driven `progress` value (0–1)
-  feeds the ruler, the elastic track, the odometer, and the ambient heat, so
-  everything moves as one.
-- **Elastic vernier track.** The wire deforms into a gaussian notch around the
-  knob; the notch overshoots with scrub velocity and springs back to rest.
-- **Continuous odometer.** Each digit wheel rotates proportional to how often
-  the wheel below it wraps, driven by the unrounded reading for a smooth roll.
-- **Reactive atmosphere.** A `--heat` CSS channel blooms a brass halo and
-  ignites an incandescent crown on the final approach; milestone crossings fire
-  a ring pulse and a light haptic tap.
-- **Fully interactive** via drag, wheel, and keyboard, with an auto‑play intro.
-- **Accessible.** Exposes a `slider` role with live `aria-valuetext`, full
-  keyboard control, visible focus, and `prefers-reduced-motion` support.
-
-## Controls
-
-| Input | Action |
-| --- | --- |
-| Drag / scroll | Scrub the timeline |
-| `↑` `→` / `↓` `←` | Step the reading up / down |
-| `Page Up` / `Page Down` | Larger step |
-| `Home` / `End` | Jump to the start / the goal |
+- **Number as light.** A `--heat`‑style channel brightens the glow and ignites
+  an incandescent core on the final approach — the signature that keeps it from
+  reading as a generic dark‑mode card.
+- **Embers feed the count.** Each igniting node lifts embers that converge into
+  the number.
+- **Premium rolling digits.** Fixed‑width tabular wheels roll forward with no
+  seam, no clip, and no layout shift; leading digits and the separator slide in
+  only as the count grows into them.
+- **One synchronized system.** A single normalized timeline value drives the
+  number, line, nodes, embers, and glow.
+- **Showcase mode** (`?showcase`) drops all chrome, hides the cursor, and fills
+  the viewport for recording.
+- **Accessible & reduced‑motion aware.** Rests on the final state and drops the
+  pulses when reduced motion is requested; conveys the result to screen readers.
 
 ## Getting started
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+npm run dev                       # http://localhost:3000
+# recording-ready, chrome-free:
+#                                   http://localhost:3000/?showcase
 ```
 
 ```bash
-npm run build    # production build
-npm run lint     # eslint
+npm run build   # production build
+npm run lint    # eslint
 ```
 
-## Customizing the measurement
+## Recording for X / social
 
-The component is generic — swap the series to measure anything over time. Edit
+1. Open `http://localhost:3000/?showcase` (fills the viewport, no cursor/chrome).
+2. Size the window to your target — **16:9** is the default framing.
+3. Screen‑record one full loop (~9s). It restarts cleanly, so any single loop is
+   a complete clip.
+
+## Customizing the story
+
+The component is generic — swap the series to tell any growth story. Edit
 [`src/lib/metric.ts`](src/lib/metric.ts) or pass your own `series` to
-`<VernierInstrument />`:
-
-```ts
-const revenue: MetricSeries = {
-  label: "MRR",
-  owner: { name: "Atlas", handle: "@atlas", verified: true },
-  milestones: [10_000, 50_000, 100_000],
-  points: [
-    { label: "Jan 2025", value: 4_200 },
-    // …low to high…
-    { label: "Dec 2025", value: 100_000 },
-  ],
-};
-```
-
-The odometer, ruler, milestones, and heat channel all derive from the series
-automatically.
+`<GrowthShowcase />`. Keep the points **low → high**; the number, line, nodes,
+milestones, and glow all derive from them.
 
 ## Architecture
 
 | File | Role |
 | --- | --- |
-| `lib/metric.ts` | Generic time‑series model, sampling, and milestones |
-| `vernier/useScrub.ts` | Spring‑backed progress engine (the source of truth) |
-| `vernier/VernierInstrument.tsx` | Owns progress; unifies drag / wheel / keyboard input |
-| `vernier/VernierTrack.tsx` | Elastic brass wire + draggable knob |
-| `vernier/VernierRuler.tsx` | Engraved, scrolling timeline scale |
-| `vernier/Odometer.tsx` + `VernierReadout.tsx` | Rolling readout and owner card |
-| `vernier/useMilestones.ts` | Heat channel + milestone pulses |
+| `lib/metric.ts` | Generic time‑series model, sampling, milestones |
+| `growth/useGrowthPlayback.ts` | The looping intro → grow → payoff → outro director |
+| `growth/GrowthShowcase.tsx` | Composition, reactive glow, payoff, showcase mode |
+| `growth/RollingNumber.tsx` | Fixed‑width forward‑rolling digit reels |
+| `growth/GrowthLine.tsx` | Growth curve that draws in with a playhead |
+| `growth/Timeline.tsx` | Rail, igniting month nodes, playhead |
+| `growth/Embers.tsx` | Embers rising from nodes into the number |
+| `growth/ProfileCard.tsx` | Owner card |
 
 ## Stack
 

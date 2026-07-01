@@ -71,17 +71,22 @@ export function Timeline({
         />
       </div>
 
-      {/* Labels */}
+      {/* Labels — thinned on small screens to avoid collisions */}
       <div className="relative mt-3 h-4">
-        {series.points.map((pt, i) => (
-          <span
-            key={pt.label}
-            className="panel-label absolute -translate-x-1/2 text-[10px] transition-colors duration-300"
-            style={{ left: `${fractions[i] * 100}%`, color: i <= lit ? "var(--brass-hot)" : undefined }}
-          >
-            {shortMonth(pt.label)}
-          </span>
-        ))}
+        {series.points.map((pt, i) => {
+          const key = i === 0 || i === last || pt.label.startsWith("Jan");
+          return (
+            <span
+              key={pt.label}
+              className={`panel-label absolute -translate-x-1/2 text-[10px] transition-colors duration-300 ${
+                key ? "" : "hidden sm:block"
+              }`}
+              style={{ left: `${fractions[i] * 100}%`, color: i <= lit ? "var(--brass-hot)" : undefined }}
+            >
+              {shortMonth(pt.label)}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

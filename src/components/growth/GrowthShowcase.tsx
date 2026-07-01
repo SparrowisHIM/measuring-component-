@@ -45,10 +45,11 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
     >
       {/* The recordable card — 16:9, grows to fill the frame */}
       <motion.div
+        aria-hidden
         initial={{ opacity: 0 }}
         animate={{ opacity: dim ? 0.1 : 1 }}
         transition={{ duration: dim ? 0.85 : 0.9, ease: "easeInOut" }}
-        className="relative aspect-video w-full max-w-[1180px] overflow-hidden rounded-[var(--radius)] border border-edge/70 bg-panel/40 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)] data-[showcase]:h-dvh data-[showcase]:max-w-none data-[showcase]:rounded-none data-[showcase]:border-0"
+        className="relative aspect-[4/5] w-full max-w-[1180px] overflow-hidden rounded-[var(--radius)] border border-edge/70 bg-panel/40 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)] sm:aspect-video data-[showcase]:h-dvh data-[showcase]:max-w-none data-[showcase]:rounded-none data-[showcase]:border-0"
       >
         {/* Subtle grid + grain substrate */}
         <div className="engraved-grid pointer-events-none absolute inset-0 opacity-70" />
