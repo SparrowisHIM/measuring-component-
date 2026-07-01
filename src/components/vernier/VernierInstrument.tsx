@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import { useScrub } from "./useScrub";
 import { useSample } from "./useSample";
 import { VernierTrack } from "./VernierTrack";
+import { VernierRuler } from "./VernierRuler";
 import { followers, formatValue, type MetricSeries } from "@/lib/metric";
 
 const FINE_STEP = 0.02;
@@ -96,12 +97,8 @@ export function VernierInstrument({ series = followers }: { series?: MetricSerie
       onWheel={onWheel}
       className="grid w-full max-w-3xl cursor-grab touch-none select-none grid-cols-[minmax(0,1fr)_120px_minmax(0,1.4fr)] items-center gap-6 rounded-[var(--radius)] outline-none focus-visible:ring-1 focus-visible:ring-brass/60 active:cursor-grabbing"
     >
-      {/* Left — main scale (ruler lands in the next stage) */}
-      <div className="flex h-[340px] flex-col justify-between py-4">
-        <span className="panel-label">{series.points[0].label}</span>
-        <span className="font-mono text-sm text-bone-dim">{sample.label}</span>
-        <span className="panel-label">{series.points[series.points.length - 1].label}</span>
-      </div>
+      {/* Left — the engraved main scale */}
+      <VernierRuler series={series} progress={scrub.progress} />
 
       {/* Center — the elastic vernier track */}
       <div className="flex items-center justify-center">

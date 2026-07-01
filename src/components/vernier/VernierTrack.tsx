@@ -9,14 +9,10 @@ import {
   useVelocity,
   type MotionValue,
 } from "motion/react";
+import { KNOB_R, TRACK_H, TRACK_W, yFor } from "./geometry";
 
-const TRACK_W = 120;
-const TRACK_H = 340;
 const X0 = 30; // resting x of the wire; the notch bulges right, toward the readout
-const KNOB_R = 24;
 const SIGMA = 44; // width of the elastic deformation
-const TRAVEL_TOP = KNOB_R + 6;
-const TRAVEL_BOTTOM = TRACK_H - KNOB_R - 6;
 
 /** A vertical wire deformed by a gaussian notch centred on the knob. */
 function buildPath(knobY: number, amp: number): string {
@@ -30,8 +26,6 @@ function buildPath(knobY: number, amp: number): string {
   }
   return d;
 }
-
-const yFor = (p: number) => TRAVEL_TOP + p * (TRAVEL_BOTTOM - TRAVEL_TOP);
 
 export function VernierTrack({ progress }: { progress: MotionValue<number> }) {
   // Amplitude of the notch grows with scrub velocity, then springs back to rest.
