@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
+/*
+  Vernier — a precision measuring instrument.
+  Design tokens: brass engraving on warm slate, heating toward incandescent
+  as the measured value climbs. No neon, no pure black.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --slate-void: #14161a; /* base background */
+  --slate-panel: #1c1f24; /* raised instrument surfaces */
+  --slate-edge: #2a2e35; /* hairline dividers / bezel edges */
+
+  /* Ink */
+  --bone: #ede6d8; /* primary engraved ink / numerals */
+  --bone-dim: #9a978d; /* secondary labels */
+  --bone-faint: #5c5b56; /* tick marks, faint scale */
+
+  /* Accent — brass, heated by progress */
+  --brass: #c8a24b; /* cold engraved brass */
+  --brass-hot: #f6d486; /* warmed brass */
+  --incandescent: #fff4e0; /* white-hot milestone peak */
+
+  /* Live reactive channel (0 = cold, 1 = incandescent). Driven at runtime. */
+  --heat: 0;
+
+  --radius: 18px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--slate-void);
+  --color-foreground: var(--bone);
+
+  --color-void: var(--slate-void);
+  --color-panel: var(--slate-panel);
+  --color-edge: var(--slate-edge);
+
+  --color-bone: var(--bone);
+  --color-bone-dim: var(--bone-dim);
+  --color-bone-faint: var(--bone-faint);
+
+  --color-brass: var(--brass);
+  --color-brass-hot: var(--brass-hot);
+  --color-incandescent: var(--incandescent);
+
+  --font-display: var(--font-space-grotesk);
+  --font-mono: var(--font-plex-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background: var(--slate-void);
+  color: var(--bone);
+  font-family: var(--font-display), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Engraved graph-paper grid — the drafting-table substrate of the instrument. */
+.engraved-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--slate-edge) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--slate-edge) 55%, transparent) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(120% 90% at 50% 40%, #000 35%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 40%, #000 35%, transparent 78%);
+}
+
+/* Fine film grain over the whole instrument for a tactile, engraved feel. */
+.film-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.06;
+}
+
+/* Tabular figures for any rolling numeric readout. */
+.tabular {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Instrument-panel label: small, tracked-out, mono. */
+.panel-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.6875rem;
+  color: var(--bone-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
