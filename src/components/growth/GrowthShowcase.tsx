@@ -1,7 +1,15 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { followers, formatValue, seriesMax, type MetricSeries } from "@/lib/metric";
+import { useState, useSyncExternalStore } from "react";
+import { motion, useMotionValueEvent } from "motion/react";
+import {
+  followers,
+  formatValue,
+  interpolateValue,
+  seriesMax,
+  type MetricSeries,
+} from "@/lib/metric";
+import { useGrowthPlayback, type Phase } from "./useGrowthPlayback";
 import { GrowthLine } from "./GrowthLine";
 import { ProfileCard } from "./ProfileCard";
 import { Timeline } from "./Timeline";
@@ -17,8 +25,25 @@ function useShowcase() {
   );
 }
 
+/** Live, rounded reading rendered as plain text (upgraded to reels next). */
+function LiveCount({
+  series,
+  t,
+}: {
+  series: MetricSeries;
+  t: ReturnType<typeof useGrowthPlayback>["t"];
+}) {
+  const [v, setV] = useState(() => Math.round(interpolateValue(series, t.get())));
+  useMotionValueEvent(t, "change", (p) => setV(Math.round(interpolateValue(series, p))));
+  return <>{formatValue(v)}</>;
+}
+
 export function GrowthShowcase({ series = followers }: { series?: MetricSeries }) {
   const showcase = useShowcase();
+  const { t, phase } = useGrowthPlayback();
+  const dim = phase === "outro";
+  const revealed: Phase[] = ["intro", "growing", "payoff"];
+  const shown = revealed.includes(phase);
   const goal = seriesMax(series);
   const last = series.points[series.points.length - 1];
 
@@ -28,7 +53,12 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
       className="relative flex min-h-dvh w-full items-center justify-center p-4 sm:p-8 data-[showcase]:cursor-none data-[showcase]:p-0"
     >
       {/* The recordable card — 16:9, grows to fill the frame */}
-      <div className="relative aspect-video w-full max-w-[1180px] overflow-hidden rounded-[var(--radius)] border border-edge/70 bg-panel/40 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)] data-[showcase]:h-dvh data-[showcase]:max-w-none data-[showcase]:rounded-none data-[showcase]:border-0">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: dim ? 0.1 : 1 }}
+        transition={{ duration: dim ? 0.85 : 0.9, ease: "easeInOut" }}
+        className="relative aspect-video w-full max-w-[1180px] overflow-hidden rounded-[var(--radius)] border border-edge/70 bg-panel/40 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)] data-[showcase]:h-dvh data-[showcase]:max-w-none data-[showcase]:rounded-none data-[showcase]:border-0"
+      >
         {/* Subtle grid + grain substrate */}
         <div className="engraved-grid pointer-events-none absolute inset-0 opacity-70" />
         <div className="film-grain pointer-events-none absolute inset-0" />
@@ -43,23 +73,33 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
         />
 
         {/* Profile */}
-        <div className="absolute left-6 top-6 sm:left-9 sm:top-8">
+        <motion.div
+          className="absolute left-6 top-6 sm:left-9 sm:top-8"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: shown ? 1 : 0, y: shown ? 0 : -8 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: phase === "intro" ? 0.15 : 0 }}
+        >
           <ProfileCard owner={series.owner} />
-        </div>
+        </motion.div>
 
         {/* Hero reading */}
-        <div className="absolute inset-x-0 top-[42%] flex -translate-y-1/2 flex-col items-center">
+        <motion.div
+          className="absolute inset-x-0 top-[42%] flex -translate-y-1/2 flex-col items-center"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: shown ? 1 : 0, scale: shown ? 1 : 0.98 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: phase === "intro" ? 0.25 : 0 }}
+        >
           <span
             className="tabular font-semibold leading-none text-bone"
             style={{ fontSize: "clamp(3.5rem, 13vw, 10rem)", letterSpacing: "-0.03em" }}
           >
-            {formatValue(goal)}
+            <LiveCount series={series} t={t} />
           </span>
           <span className="mt-4 font-display text-lg font-medium tracking-wide text-bone-dim sm:text-xl">
             {series.label}
           </span>
           <span className="panel-label mt-1">as of {last.label}</span>
-        </div>
+        </motion.div>
 
         {/* Growth line + timeline along the base */}
         <div className="absolute inset-x-0 bottom-0 h-[34%]">
@@ -75,7 +115,12 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
               "radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(0,0,0,0.55) 100%)",
           }}
         />
-      </div>
+      </motion.div>
+
+      {/* keep goal referenced for a11y summary */}
+      <span className="sr-only">
+        {series.owner.name} grew to {formatValue(goal)} {series.label} as of {last.label}.
+      </span>
     </div>
   );
 }
