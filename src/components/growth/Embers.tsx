@@ -14,7 +14,16 @@ const NUMBER_Y = 40; // convergence height (%) at the number
  * The signature: each time a timeline node ignites, embers lift off the rail
  * and converge into the number — growth made visible as light feeding the count.
  */
-export function Embers({ series, progress }: { series: MetricSeries; progress: MotionValue<number> }) {
+export function Embers({
+  series,
+  progress,
+  active,
+}: {
+  series: MetricSeries;
+  progress: MotionValue<number>;
+  /** Only lift embers while the reveal is playing — calm during inspection. */
+  active: boolean;
+}) {
   const reduce = useReducedMotion();
   const fractions = pointFractions(series);
   const last = series.points.length - 1;
@@ -23,7 +32,7 @@ export function Embers({ series, progress }: { series: MetricSeries; progress: M
   const [embers, setEmbers] = useState<Ember[]>([]);
 
   useMotionValueEvent(progress, "change", (p) => {
-    if (reduce) return;
+    if (reduce || !active) return;
     const clamped = Math.min(1, Math.max(0, p));
 
     // Reset the counter when the loop rewinds.
