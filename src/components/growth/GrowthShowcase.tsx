@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { motion, useTransform } from "motion/react";
 import { followers, formatValue, interpolateValue, seriesMax, type MetricSeries } from "@/lib/metric";
 import { useGrowthPlayback, type Phase } from "./useGrowthPlayback";
+import { Embers } from "./Embers";
 import { GrowthLine } from "./GrowthLine";
 import { ProfileCard } from "./ProfileCard";
 import { RollingNumber } from "./RollingNumber";
@@ -24,6 +25,11 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
   const showcase = useShowcase();
   const { t, phase } = useGrowthPlayback();
   const value = useTransform(t, (p) => interpolateValue(series, p));
+
+  // Reactive atmosphere — the frame warms as the count climbs.
+  const glowOpacity = useTransform(t, [0, 1], [0.32, 1]);
+  const glowScale = useTransform(t, [0, 1], [0.82, 1.12]);
+  const coreOpacity = useTransform(t, (p) => Math.max(0, (p - 0.55) / 0.45) * 0.85);
   const dim = phase === "outro";
   const revealed: Phase[] = ["intro", "growing", "payoff"];
   const shown = revealed.includes(phase);
@@ -46,12 +52,23 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
         <div className="engraved-grid pointer-events-none absolute inset-0 opacity-70" />
         <div className="film-grain pointer-events-none absolute inset-0" />
 
-        {/* Warm glow field, pooled behind the number */}
-        <div
-          className="pointer-events-none absolute left-1/2 top-[46%] h-[80%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[90px]"
+        {/* Warm glow field, pooled behind the number — brightens with the count */}
+        <motion.div
+          className="pointer-events-none absolute left-1/2 top-[44%] h-[85%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[90px]"
           style={{
+            opacity: glowOpacity,
+            scale: glowScale,
             background:
-              "radial-gradient(circle, color-mix(in oklab, var(--ember) 26%, transparent), transparent 66%)",
+              "radial-gradient(circle, color-mix(in oklab, var(--ember) 30%, transparent), transparent 66%)",
+          }}
+        />
+        {/* Incandescent core — only the final approach runs white-hot */}
+        <motion.div
+          className="pointer-events-none absolute left-1/2 top-[42%] h-[46%] w-[42%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[70px]"
+          style={{
+            opacity: coreOpacity,
+            background:
+              "radial-gradient(circle, color-mix(in oklab, var(--incandescent) 55%, transparent), transparent 62%)",
           }}
         />
 
@@ -84,6 +101,9 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
           <GrowthLine series={series} progress={t} />
           <Timeline series={series} progress={t} />
         </div>
+
+        {/* Embers feeding the number */}
+        <Embers series={series} progress={t} />
 
         {/* Vignette to seat the card */}
         <div
