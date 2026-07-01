@@ -15,9 +15,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Growth — 100 to 10,000 followers",
+  title: "GrowthCard — an interactive growth widget",
   description:
-    "A cinematic, self-playing growth component. Watch the follower count build from 100 to 10,000 as the timeline lights up and the frame runs warm.",
+    "A reusable, data-driven growth card. It counts up when it scrolls into view, then hover or drag the timeline to inspect any month.",
 };
 
 export default function RootLayout({

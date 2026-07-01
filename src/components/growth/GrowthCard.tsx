@@ -60,6 +60,33 @@ export function GrowthCard({ data = followers, className = "" }: GrowthCardProps
     [scrubTo],
   );
 
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const step = 1 / (data.points.length - 1);
+      const cur = progress.get();
+      switch (e.key) {
+        case "ArrowRight":
+        case "ArrowUp":
+          scrubTo(cur + step);
+          break;
+        case "ArrowLeft":
+        case "ArrowDown":
+          scrubTo(cur - step);
+          break;
+        case "Home":
+          scrubTo(0);
+          break;
+        case "End":
+          scrubTo(1);
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+    },
+    [data.points.length, progress, scrubTo],
+  );
+
   return (
     <motion.div
       ref={rootRef}
@@ -155,6 +182,8 @@ export function GrowthCard({ data = followers, className = "" }: GrowthCardProps
         onPointerLeave={endScrub}
         onPointerUp={endScrub}
         onPointerCancel={endScrub}
+        onKeyDown={onKeyDown}
+        onBlur={endScrub}
       />
     </motion.div>
   );

@@ -46,21 +46,20 @@ export function Embers({
 
     const created: Ember[] = [];
     for (let i = prevLit.current + 1; i <= lit; i++) {
-      const count = 1 + (Math.random() < 0.5 ? 1 : 0);
-      for (let k = 0; k < count; k++) {
-        const id = ++nextId.current;
-        created.push({
-          id,
-          x: INSET + fractions[i] * (100 - 2 * INSET),
-          drift: (Math.random() - 0.5) * 12,
-          delay: k * 0.08,
-          size: 3 + Math.random() * 3,
-        });
-        window.setTimeout(() => setEmbers((list) => list.filter((e) => e.id !== id)), 1400 + k * 90);
-      }
+      // Sparse: not every node emits, and only one ember when it does.
+      if (Math.random() > 0.7) continue;
+      const id = ++nextId.current;
+      created.push({
+        id,
+        x: INSET + fractions[i] * (100 - 2 * INSET),
+        drift: (Math.random() - 0.5) * 10,
+        delay: 0,
+        size: 2.5 + Math.random() * 2.5,
+      });
+      window.setTimeout(() => setEmbers((list) => list.filter((e) => e.id !== id)), 1400);
     }
     prevLit.current = lit;
-    if (created.length) setEmbers((list) => [...list, ...created].slice(-24));
+    if (created.length) setEmbers((list) => [...list, ...created].slice(-16));
   });
 
   return (
