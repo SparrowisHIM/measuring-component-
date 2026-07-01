@@ -1,12 +1,7 @@
 "use client";
 
 import { useTransform, type MotionValue } from "motion/react";
-import {
-  formatValue,
-  interpolateValue,
-  seriesMax,
-  type MetricSeries,
-} from "@/lib/metric";
+import { interpolateValue, seriesMax, type MetricSeries } from "@/lib/metric";
 import { useSample } from "./useSample";
 import { Odometer } from "./Odometer";
 
@@ -60,12 +55,7 @@ export function VernierReadout({
 
       {/* Reading */}
       <div className="flex flex-col gap-2">
-        <Odometer
-          value={value}
-          max={seriesMax(series)}
-          formatted={formatValue(sample.value)}
-          label={series.label}
-        />
+        <Odometer value={value} max={seriesMax(series)} />
         <div className="flex items-baseline gap-2">
           <span className="panel-label">{series.label}</span>
           <span className="font-mono text-xs text-bone-dim">· as of {sample.label}</span>

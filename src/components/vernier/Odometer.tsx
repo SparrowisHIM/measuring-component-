@@ -59,18 +59,7 @@ function Comma({ value, threshold }: { value: MotionValue<number>; threshold: nu
   );
 }
 
-export function Odometer({
-  value,
-  max,
-  formatted,
-  label,
-}: {
-  value: MotionValue<number>;
-  max: number;
-  /** Accessible plain-text of the current value. */
-  formatted: string;
-  label: string;
-}) {
+export function Odometer({ value, max }: { value: MotionValue<number>; max: number }) {
   const places = Math.max(1, String(Math.round(max)).length);
   const cells: React.ReactNode[] = [];
   for (let p = places - 1; p >= 0; p--) {
@@ -80,13 +69,9 @@ export function Odometer({
     }
   }
 
+  // Purely visual: the slider role announces the reading via aria-valuetext.
   return (
-    <div
-      className="text-[52px] leading-none text-bone"
-      style={{ height: DIGIT_H }}
-      role="text"
-      aria-label={`${formatted} ${label}`}
-    >
+    <div className="text-[52px] leading-none text-bone" style={{ height: DIGIT_H }} aria-hidden>
       <div className="flex items-center" style={{ height: DIGIT_H }}>
         {cells}
       </div>
