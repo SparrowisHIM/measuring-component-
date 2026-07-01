@@ -16,6 +16,26 @@ export default function Home() {
         }}
       />
 
+      {/* Heat bloom — intensifies with the reading via the --heat channel */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[92vmin] w-[92vmin] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[110px]"
+        style={{
+          background:
+            "radial-gradient(circle, var(--brass-hot), transparent 62%)",
+          opacity: "calc(var(--heat) * 0.5)",
+        }}
+      />
+
+      {/* Incandescent crown — only the final approach runs white-hot */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(130% 90% at 72% 44%, color-mix(in oklab, var(--incandescent) 42%, transparent), transparent 55%)",
+          opacity: "calc((var(--heat) - 0.72) * 3.4)",
+        }}
+      />
+
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-6xl flex-col px-6 py-8">
         {/* Instrument header */}
         <header className="flex items-baseline justify-between border-b border-edge/70 pb-5">

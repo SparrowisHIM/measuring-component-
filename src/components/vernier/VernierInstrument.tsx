@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useScrub } from "./useScrub";
 import { useSample } from "./useSample";
+import { useMilestones } from "./useMilestones";
 import { VernierTrack } from "./VernierTrack";
 import { VernierRuler } from "./VernierRuler";
 import { VernierReadout } from "./VernierReadout";
@@ -14,6 +16,7 @@ const PAGE_STEP = 0.1;
 export function VernierInstrument({ series = followers }: { series?: MetricSeries }) {
   const scrub = useScrub(0);
   const sample = useSample(series, scrub.progress);
+  const pulses = useMilestones(series, scrub.progress);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const lastY = useRef(0);
@@ -96,8 +99,35 @@ export function VernierInstrument({ series = followers }: { series?: MetricSerie
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onWheel={onWheel}
-      className="grid w-full max-w-3xl cursor-grab touch-none select-none grid-cols-[minmax(0,1fr)_120px_minmax(0,1.4fr)] items-center gap-6 rounded-[var(--radius)] outline-none focus-visible:ring-1 focus-visible:ring-brass/60 active:cursor-grabbing"
+      className="relative grid w-full max-w-3xl cursor-grab touch-none select-none grid-cols-[minmax(0,1fr)_120px_minmax(0,1.4fr)] items-center gap-6 rounded-[var(--radius)] outline-none focus-visible:ring-1 focus-visible:ring-brass/60 active:cursor-grabbing"
     >
+      {/* Milestone pulses — a brass ring and rising tag when the reading crosses a round number */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+        <AnimatePresence>
+          {pulses.map((p) => (
+            <div key={p.id} className="absolute flex flex-col items-center">
+              <motion.span
+                className="absolute h-40 w-40 rounded-full border border-brass/70"
+                initial={{ scale: 0.35, opacity: 0.65 }}
+                animate={{ scale: 2.6, opacity: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                style={{ boxShadow: "0 0 40px color-mix(in oklab, var(--brass-hot) 60%, transparent)" }}
+              />
+              <motion.span
+                className="tabular rounded-full border border-brass/40 bg-panel/80 px-3 py-1 text-sm font-semibold text-brass-hot backdrop-blur-sm"
+                initial={{ y: 14, opacity: 0 }}
+                animate={{ y: -34, opacity: [0, 1, 1, 0] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1, ease: "easeOut", times: [0, 0.2, 0.7, 1] }}
+              >
+                {formatValue(p.value)}
+              </motion.span>
+            </div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* Left — the engraved main scale */}
       <VernierRuler series={series} progress={scrub.progress} />
 
