@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { motion, useTransform } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
 import { followers, formatValue, interpolateValue, seriesMax, type MetricSeries } from "@/lib/metric";
 import { useGrowthPlayback, type Phase } from "./useGrowthPlayback";
 import { Embers } from "./Embers";
@@ -23,8 +23,10 @@ function useShowcase() {
 
 export function GrowthShowcase({ series = followers }: { series?: MetricSeries }) {
   const showcase = useShowcase();
+  const reduce = useReducedMotion();
   const { t, phase } = useGrowthPlayback();
   const value = useTransform(t, (p) => interpolateValue(series, p));
+  const isPayoff = phase === "payoff";
 
   // Reactive atmosphere — the frame warms as the count climbs.
   const glowOpacity = useTransform(t, [0, 1], [0.32, 1]);
@@ -89,11 +91,27 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
           animate={{ opacity: shown ? 1 : 0, scale: shown ? 1 : 0.98 }}
           transition={{ duration: 0.7, ease: "easeOut", delay: phase === "intro" ? 0.25 : 0 }}
         >
-          <RollingNumber value={value} max={goal} />
-          <span className="mt-4 font-display text-lg font-medium tracking-wide text-bone-dim sm:text-xl">
-            {series.label}
-          </span>
-          <span className="panel-label mt-1">as of {last.label}</span>
+          <motion.div
+            className="flex flex-col items-center"
+            animate={{ scale: isPayoff && !reduce ? [1, 1.035, 1] : 1 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          >
+            <RollingNumber value={value} max={goal} />
+            <span
+              className={`mt-4 font-display text-lg font-medium tracking-wide transition-colors duration-500 sm:text-xl ${
+                isPayoff ? "text-bone" : "text-bone-dim"
+              }`}
+            >
+              {series.label}
+            </span>
+            <span
+              className={`panel-label mt-1 transition-colors duration-500 ${
+                isPayoff ? "text-brass-hot" : ""
+              }`}
+            >
+              as of {last.label}
+            </span>
+          </motion.div>
         </motion.div>
 
         {/* Growth line + timeline along the base */}
@@ -104,6 +122,36 @@ export function GrowthShowcase({ series = followers }: { series?: MetricSeries }
 
         {/* Embers feeding the number */}
         <Embers series={series} progress={t} />
+
+        {/* Payoff — a warm bloom that swells and holds when the goal lands */}
+        <motion.div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 42%, color-mix(in oklab, var(--incandescent) 40%, transparent), transparent 55%)",
+          }}
+          animate={{ opacity: isPayoff ? (reduce ? 0.22 : [0, 0.6, 0.3]) : 0 }}
+          transition={{ duration: reduce ? 0.2 : 1, ease: "easeOut" }}
+        />
+
+        {/* Payoff — a single ring blooming out from the number */}
+        <AnimatePresence>
+          {isPayoff && !reduce && (
+            <motion.span
+              key="payoff-ring"
+              className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 rounded-full border"
+              style={{
+                width: "30vmin",
+                height: "30vmin",
+                borderColor: "color-mix(in oklab, var(--brass-hot) 55%, transparent)",
+              }}
+              initial={{ scale: 0.5, opacity: 0.6 }}
+              animate={{ scale: 1.9, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.1, ease: "easeOut" }}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Vignette to seat the card */}
         <div
