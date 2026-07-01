@@ -8,7 +8,8 @@ type Ember = { id: number; x: number; drift: number; delay: number; size: number
 
 const INSET = 4.5; // horizontal inset (%) matching the timeline rail
 const RAIL_Y = 84; // start height (%) at the rail
-const NUMBER_Y = 40; // convergence height (%) at the number
+const NUMBER_Y = 42; // convergence height (%) at the number
+const NUMBER_X = 62; // convergence x (%) — over the readout
 
 /**
  * The signature: each time a timeline node ignites, embers lift off the rail
@@ -77,7 +78,7 @@ export function Embers({
             }}
             initial={{ left: `${e.x}%`, top: `${RAIL_Y}%`, opacity: 0, scale: 1 }}
             animate={{
-              left: `${50 + e.drift}%`,
+              left: `${NUMBER_X + e.drift}%`,
               top: `${NUMBER_Y}%`,
               opacity: [0, 0.95, 0],
               scale: [1, 0.85, 0.2],

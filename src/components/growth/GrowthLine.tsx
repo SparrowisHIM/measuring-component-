@@ -35,7 +35,7 @@ export function GrowthLine({
   const tipTop = useMotionTemplate`${tipYPct}%`;
 
   return (
-    <div className="absolute inset-x-0 top-0 h-[62%]">
+    <div className="absolute inset-0">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"

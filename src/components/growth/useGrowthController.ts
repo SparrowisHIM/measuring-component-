@@ -14,10 +14,8 @@ export type GrowthController = {
   progress: MotionValue<number>;
   /** Attach to the component root to trigger the reveal when it scrolls in. */
   rootRef: React.RefObject<HTMLDivElement | null>;
-  /** Set the position while inspecting (hover/drag), 0..1. */
+  /** Set the position while dragging the knob, 0..1 (holds where released). */
   scrubTo: (fraction: number) => void;
-  /** Stop inspecting — return to the current (final) value. */
-  endScrub: () => void;
   /** True while the one-time count-up reveal is playing. */
   revealing: boolean;
 };
@@ -85,9 +83,5 @@ export function useGrowthController(onReveal?: () => void): GrowthController {
     [target],
   );
 
-  const endScrub = useCallback(() => {
-    target.set(1);
-  }, [target]);
-
-  return { progress, rootRef, scrubTo, endScrub, revealing };
+  return { progress, rootRef, scrubTo, revealing };
 }
