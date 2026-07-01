@@ -8,6 +8,9 @@ import { motion, useMotionValueEvent, useTransform, type MotionValue } from "mot
 const STRIP = [0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
 const CELL_W = "0.62em";
 const COMMA_W = "0.3em";
+// Tight cell height so digits stack close and the roll reads as one
+// continuous wheel rather than digits separated by gaps.
+const CELL_H = "0.82em";
 
 /** One forward-rolling digit wheel, driven continuously and unit-free (%). */
 function Wheel({
@@ -31,15 +34,19 @@ function Wheel({
   return (
     <motion.span
       className="relative inline-block overflow-hidden"
-      style={{ width: CELL_W, height: "1em" }}
+      style={{ width: CELL_W, height: CELL_H }}
       initial={false}
-      animate={{ opacity: active ? 1 : 0, y: active ? 0 : "-24%" }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      animate={{ opacity: active ? 1 : 0, y: active ? 0 : "-18%" }}
+      transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
       aria-hidden
     >
       <motion.span className="absolute left-0 top-0 flex w-full flex-col" style={{ y }}>
         {STRIP.map((d, i) => (
-          <span key={i} className="flex h-[1em] items-center justify-center leading-none">
+          <span
+            key={i}
+            className="flex items-center justify-center leading-none"
+            style={{ height: CELL_H }}
+          >
             {d}
           </span>
         ))}
@@ -51,11 +58,11 @@ function Wheel({
 function Comma({ active }: { active: boolean }) {
   return (
     <motion.span
-      className="relative inline-flex h-[1em] items-end justify-center leading-none"
-      style={{ width: COMMA_W }}
+      className="relative inline-flex items-end justify-center leading-none"
+      style={{ width: COMMA_W, height: CELL_H }}
       initial={false}
       animate={{ opacity: active ? 1 : 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
       aria-hidden
     >
       ,
@@ -91,9 +98,9 @@ export function RollingNumber({ value, max }: { value: MotionValue<number>; max:
       style={{
         fontSize: "clamp(3.5rem, 13vw, 10rem)",
         letterSpacing: "-0.03em",
-        // Hide any wheel bleed at the very top/bottom during a roll.
-        maskImage: "linear-gradient(to bottom, transparent 0%, #000 11%, #000 89%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 11%, #000 89%, transparent 100%)",
+        // Soften any wheel bleed at the very top/bottom during a roll.
+        maskImage: "linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%)",
       }}
       aria-hidden
     >

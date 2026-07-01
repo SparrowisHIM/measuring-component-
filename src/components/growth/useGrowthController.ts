@@ -34,8 +34,9 @@ const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 export function useGrowthController(onReveal?: () => void): GrowthController {
   const reduce = useReducedMotion();
   const target = useMotionValue(0);
-  // Snappy settle so month-to-month rolls land clean quickly.
-  const progress = useSpring(target, { stiffness: 260, damping: 32, mass: 0.5 });
+  // Slightly overdamped: a smooth glide between months with no overshoot,
+  // so the digits roll cleanly and settle without a bounce.
+  const progress = useSpring(target, { stiffness: 190, damping: 30, mass: 0.75 });
   const rootRef = useRef<HTMLDivElement | null>(null);
   const revealCtrl = useRef<ReturnType<typeof animate> | null>(null);
   const started = useRef(false);
