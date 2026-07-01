@@ -1,3 +1,5 @@
+import { VernierInstrument } from "@/components/vernier/VernierInstrument";
+
 export default function Home() {
   return (
     <main className="relative min-h-dvh overflow-hidden bg-void">
@@ -33,9 +35,9 @@ export default function Home() {
           <span className="panel-label">Measuring Instrument · No. 01</span>
         </header>
 
-        {/* Instrument stage — zones land here in the next stages */}
+        {/* Instrument stage */}
         <section className="flex flex-1 items-center justify-center">
-          <div className="panel-label opacity-60">Calibrating…</div>
+          <VernierInstrument />
         </section>
 
         <footer className="flex items-center justify-between border-t border-edge/70 pt-5">
