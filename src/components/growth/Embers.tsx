@@ -73,8 +73,8 @@ export function Embers({
             style={{
               width: e.size,
               height: e.size,
-              background: "var(--brass-hot)",
-              boxShadow: "0 0 8px 1px var(--ember)",
+              background: "var(--gc-accent-hot)",
+              boxShadow: "0 0 8px 1px color-mix(in oklab, var(--gc-accent) 80%, transparent)",
             }}
             initial={{ left: `${e.x}%`, top: `${RAIL_Y}%`, opacity: 0, scale: 1 }}
             animate={{

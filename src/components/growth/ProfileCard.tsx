@@ -5,10 +5,11 @@ export function ProfileCard({ owner }: { owner: MetricSeries["owner"] }) {
   return (
     <div className="flex items-center gap-3">
       <span
-        className="flex h-11 w-11 items-center justify-center rounded-full font-display text-base font-semibold text-void"
+        className="flex h-11 w-11 items-center justify-center rounded-full font-display text-base font-semibold text-card"
         style={{
-          background: "linear-gradient(140deg, var(--brass-hot), var(--ember))",
-          boxShadow: "0 0 0 1px color-mix(in oklab, var(--brass) 45%, transparent), 0 6px 18px -6px var(--ember)",
+          background: "linear-gradient(140deg, var(--gc-accent-hot), var(--gc-accent))",
+          boxShadow:
+            "0 0 0 1px color-mix(in oklab, var(--gc-accent) 45%, transparent), 0 6px 18px -6px color-mix(in oklab, var(--gc-accent) 70%, transparent)",
         }}
         aria-hidden
       >
@@ -16,17 +17,17 @@ export function ProfileCard({ owner }: { owner: MetricSeries["owner"] }) {
       </span>
       <span className="flex flex-col">
         <span className="flex items-center gap-1.5">
-          <span className="font-display text-base font-semibold text-bone">{owner.name}</span>
+          <span className="font-display text-base font-semibold text-ink">{owner.name}</span>
           {owner.verified && (
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-label="Verified">
+            <svg width="17" height="17" viewBox="0 0 24 24" aria-label="Verified">
               <path
                 d="M12 2l2.3 1.7 2.8-.3 1 2.6 2.4 1.5-.7 2.8.7 2.8-2.4 1.5-1 2.6-2.8-.3L12 22l-2.3-1.7-2.8.3-1-2.6L3.5 16l.7-2.8-.7-2.8 2.4-1.5 1-2.6 2.8.3z"
-                fill="var(--brass)"
+                fill="var(--gc-badge)"
               />
               <path
                 d="M8.5 12l2.3 2.3 4.7-4.7"
                 fill="none"
-                stroke="var(--void)"
+                stroke="#fff"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -34,7 +35,7 @@ export function ProfileCard({ owner }: { owner: MetricSeries["owner"] }) {
             </svg>
           )}
         </span>
-        <span className="font-mono text-xs text-bone-dim">{owner.handle}</span>
+        <span className="font-mono text-xs text-ink-dim">{owner.handle}</span>
       </span>
     </div>
   );
