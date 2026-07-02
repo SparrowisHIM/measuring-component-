@@ -16,9 +16,10 @@ export type GrowthController = {
   rootRef: React.RefObject<HTMLDivElement | null>;
   /** Set the position while dragging the knob, 0..1 (holds where released). */
   scrubTo: (fraction: number) => void;
-  /** Let go at `fraction`: a flick spools the tape on with momentum and lands
-   *  it on a month detent; a gentle release snaps to the nearest month. */
-  release: (fraction: number) => void;
+  /** Let go at `fraction` with `velocity` (fractions/s): a flick spools the
+   *  tape on with momentum and lands it on a month detent; a gentle release
+   *  snaps to the nearest month. */
+  release: (fraction: number, velocity: number) => void;
   /** Rewind to zero and play the count-up reveal again. */
   replay: () => void;
   /** True while the one-time count-up reveal is playing. */
@@ -39,8 +40,9 @@ export function useGrowthController(onReveal?: () => void, detents = 2): GrowthC
   const reduce = useReducedMotion();
   const target = useMotionValue(0);
   // Slightly overdamped: a smooth glide between months with no overshoot,
-  // so the digits roll cleanly and settle without a bounce.
-  const progress = useSpring(target, { stiffness: 190, damping: 30, mass: 0.75 });
+  // so the digits roll cleanly and settle without a bounce. Kept on the
+  // soft side so drags feel buttery rather than notchy.
+  const progress = useSpring(target, { stiffness: 150, damping: 26, mass: 0.9 });
   const rootRef = useRef<HTMLDivElement | null>(null);
   const revealCtrl = useRef<ReturnType<typeof animate> | null>(null);
   const flingCtrl = useRef<ReturnType<typeof animate> | null>(null);
@@ -96,10 +98,9 @@ export function useGrowthController(onReveal?: () => void, detents = 2): GrowthC
   );
 
   const release = useCallback(
-    (fraction: number) => {
+    (fraction: number, velocity: number) => {
       const last = Math.max(1, detents - 1);
       const snap = (t: number) => Math.round(clamp01(t) * last) / last;
-      const velocity = target.getVelocity();
       // A gentle release just settles onto the nearest month.
       if (Math.abs(velocity) < 0.18) {
         target.set(snap(fraction));
@@ -107,11 +108,15 @@ export function useGrowthController(onReveal?: () => void, detents = 2): GrowthC
       }
       // A flick keeps the tape spooling — friction bleeds the speed off and
       // the reading lands on a month; the ends catch it with a bounce.
-      flingCtrl.current = animate(target, clamp01(fraction), {
+      // The `to` must be the projected landing, not the current position:
+      // motion skips "already at target" animations before the inertia
+      // generator (which computes its own target) ever gets a say.
+      const power = 0.55;
+      flingCtrl.current = animate(target, clamp01(fraction) + power * velocity, {
         type: "inertia",
         velocity,
-        power: 0.35,
-        timeConstant: 280,
+        power,
+        timeConstant: 340,
         min: 0,
         max: 1,
         bounceStiffness: 240,

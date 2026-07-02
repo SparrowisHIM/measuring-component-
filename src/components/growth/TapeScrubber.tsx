@@ -61,6 +61,10 @@ const HORIZONTAL: Geo = {
 
 const GAP = 6; // breathing room between wire and knob edge
 
+// The tape travels faster than the finger, so a light pull covers months
+// without hauling the pointer the tape's full physical length.
+const DRAG_GAIN = 1.6;
+
 /** "Mar 2024" -> "Mar '24". */
 const shortLabel = (label: string) => {
   const [m, y] = label.split(" ");
@@ -127,8 +131,9 @@ export function TapeScrubber({
   progress: MotionValue<number>;
   /** Continuous while dragging; snapped to a month on taps/keys. */
   onScrub: (fraction: number) => void;
-  /** Letting go of a drag — the controller carries momentum from here. */
-  onRelease: (fraction: number) => void;
+  /** Letting go of a drag — the controller carries the momentum from here.
+   *  `velocity` is in progress-fractions per second. */
+  onRelease: (fraction: number, velocity: number) => void;
   /** First pointer/key interaction — used to retire the drag hint. */
   onInteract?: () => void;
   /** Bump to fire a shockwave down the wire (milestone crossings). */
@@ -265,7 +270,14 @@ export function TapeScrubber({
 
   /* ------------------------------ dragging ------------------------------ */
 
-  const drag = useRef<{ startPos: number; startP: number; moved: number } | null>(null);
+  // `trail` keeps ~100ms of recent positions so release velocity comes from
+  // the finger's actual final motion, not a single frame delta.
+  const drag = useRef<{
+    startPos: number;
+    startP: number;
+    moved: number;
+    trail: Array<{ p: number; t: number }>;
+  } | null>(null);
 
   const mainPos = (e: React.PointerEvent) => {
     const rect = railRef.current!.getBoundingClientRect();
@@ -277,7 +289,13 @@ export function TapeScrubber({
       if (!railRef.current) return;
       onInteract?.();
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      drag.current = { startPos: mainPos(e), startP: clamp01(progress.get()), moved: 0 };
+      const startP = clamp01(progress.get());
+      drag.current = {
+        startPos: mainPos(e),
+        startP,
+        moved: 0,
+        trail: [{ p: startP, t: e.timeStamp }],
+      };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [onInteract, progress, horizontal],
@@ -291,7 +309,9 @@ export function TapeScrubber({
       d.moved = Math.max(d.moved, Math.abs(pos - d.startPos));
       // Pulling the tape toward the past drags the reading back in time;
       // anything past the ends becomes rubbery overstretch.
-      const raw = d.startP + (d.startPos - pos) / (geo.step * last);
+      const raw = d.startP + (DRAG_GAIN * (d.startPos - pos)) / (geo.step * last);
+      d.trail.push({ p: raw, t: e.timeStamp });
+      while (d.trail.length > 2 && e.timeStamp - d.trail[0].t > 100) d.trail.shift();
       onScrub(clamp01(raw));
       overF.set(rubber(raw - clamp01(raw)));
     },
@@ -316,7 +336,16 @@ export function TapeScrubber({
         onScrub(Math.min(last, Math.max(0, idx)) / last);
       } else {
         // Hand the drag off with its momentum — a flick keeps spooling.
-        onRelease(d.startP + (d.startPos - mainPos(e)) / (geo.step * last));
+        // Velocity comes from the trail's window; a stale trail (finger
+        // paused before lifting) reads as zero and simply settles in place.
+        const raw = d.startP + (DRAG_GAIN * (d.startPos - mainPos(e))) / (geo.step * last);
+        let velocity = 0;
+        const fresh = d.trail.filter((s) => e.timeStamp - s.t <= 120);
+        if (fresh.length > 0) {
+          const dt = (e.timeStamp - fresh[0].t) / 1000;
+          if (dt > 0.008) velocity = (raw - fresh[0].p) / dt;
+        }
+        onRelease(raw, velocity);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
