@@ -201,6 +201,11 @@ export function TapeScrubber({
   });
   const nudge = useSpring(nudgeTarget, { stiffness: 280, damping: 22, mass: 0.55 });
 
+  // Cartoon lean: at speed the tape shears slightly into its direction of
+  // travel — like print on rubber — and relaxes upright as it settles.
+  const shearTarget = useTransform(() => Math.max(-3.5, Math.min(3.5, velocity.get() * 9)));
+  const shear = useSpring(shearTarget, { stiffness: 320, damping: 30 });
+
   useEffect(() => {
     if (!hint || reduce) return;
     const breath = animate(idle, [0, 5, 0], {
@@ -385,7 +390,10 @@ export function TapeScrubber({
     >
       {/* The tape: month chips + ruler ticks, scrolling past the head */}
       <div className="absolute inset-0 overflow-hidden" style={{ maskImage: fadeMask, WebkitMaskImage: fadeMask }}>
-        <motion.div className="absolute inset-0" style={horizontal ? { x: tapeOffset } : { y: tapeOffset }}>
+        <motion.div
+          className="absolute inset-0"
+          style={horizontal ? { x: tapeOffset, skewX: shear } : { y: tapeOffset, skewY: shear }}
+        >
           {series.points.map((pt, i) => {
             const on = i === active;
             return (
