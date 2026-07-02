@@ -1,9 +1,8 @@
-import { GrowthCard } from "@/components/growth/GrowthCard";
-import { stars } from "@/lib/metric";
+import { GrowthShowcase } from "@/components/growth/GrowthShowcase";
 
 export default function Home() {
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-14 overflow-x-hidden px-4 py-16 sm:gap-20 sm:px-8">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-12 overflow-x-hidden px-4 py-16 sm:px-8">
       <header className="flex flex-col items-center gap-3 text-center">
         <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-white/35">
           GrowthCard
@@ -13,8 +12,7 @@ export default function Home() {
         </h1>
       </header>
 
-      <GrowthCard />
-      <GrowthCard data={stars} theme="brass" />
+      <GrowthShowcase />
     </main>
   );
 }
