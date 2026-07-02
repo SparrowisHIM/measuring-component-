@@ -1,50 +1,69 @@
 @import "tailwindcss";
 
 /*
-  Vernier — a precision measuring instrument.
-  Design tokens: brass engraving on warm slate, heating toward incandescent
-  as the measured value climbs. No neon, no pure black.
+  GrowthCard theme system. Every visual inside the card reads --gc-* tokens,
+  so a theme is just a class on the card root. Two shipped voices:
+
+  - .gc-lime  — "Signal": pure black, white ink, chartreuse wire, green–gold
+                bokeh bleeding in from the right (the reference look).
+  - .gc-brass — "Vernier": warm slate, bone ink, brass heating toward ember —
+                a drafting-instrument reading of the same component.
 */
 
 :root {
-  /* Surfaces */
-  --slate-void: #14161a; /* base background */
-  --slate-panel: #1c1f24; /* raised instrument surfaces */
-  --slate-edge: #2a2e35; /* hairline dividers / bezel edges */
-
-  /* Ink */
-  --bone: #ede6d8; /* primary engraved ink / numerals */
-  --bone-dim: #9a978d; /* secondary labels */
-  --bone-faint: #5c5b56; /* tick marks, faint scale */
-
-  /* Accent — warm gold, heated by growth */
-  --brass: #d9a441; /* gold */
-  --brass-hot: #ffcf7a; /* warm gold */
-  --ember: #ff8a3d; /* orange ember */
-  --incandescent: #fff3df; /* white-hot payoff */
-
-  /* Live reactive channel (0 = cold, 1 = incandescent). Driven at runtime. */
-  --heat: 0;
-
+  --page-bg: #08090a;
   --radius: 22px;
 }
 
+.gc-lime {
+  --gc-bg: #050606;
+  --gc-surface: #0c0e0d;
+  --gc-edge: #1e231d;
+
+  --gc-ink: #f2f4ee;
+  --gc-ink-dim: #8d948a;
+  --gc-ink-faint: #464c42;
+
+  --gc-accent: #a3e635; /* chartreuse wire */
+  --gc-accent-hot: #d9f99d; /* lit chevrons, active glow */
+  --gc-flare: #eab308; /* golden edge of the bokeh */
+  --gc-peak: #f7fee7; /* white-hot payoff */
+
+  --gc-badge: #1d9bf0;
+}
+
+.gc-brass {
+  --gc-bg: #14161a;
+  --gc-surface: #1c1f24;
+  --gc-edge: #2a2e35;
+
+  --gc-ink: #ede6d8;
+  --gc-ink-dim: #9a978d;
+  --gc-ink-faint: #5c5b56;
+
+  --gc-accent: #d9a441;
+  --gc-accent-hot: #ffcf7a;
+  --gc-flare: #ff8a3d;
+  --gc-peak: #fff3df;
+
+  --gc-badge: #1d9bf0;
+}
+
 @theme inline {
-  --color-background: var(--slate-void);
-  --color-foreground: var(--bone);
+  --color-background: var(--page-bg);
+  --color-foreground: #f2f4ee;
 
-  --color-void: var(--slate-void);
-  --color-panel: var(--slate-panel);
-  --color-edge: var(--slate-edge);
-
-  --color-bone: var(--bone);
-  --color-bone-dim: var(--bone-dim);
-  --color-bone-faint: var(--bone-faint);
-
-  --color-brass: var(--brass);
-  --color-brass-hot: var(--brass-hot);
-  --color-ember: var(--ember);
-  --color-incandescent: var(--incandescent);
+  /* Card-scoped colors — resolve against the nearest .gc-* theme class. */
+  --color-card: var(--gc-bg);
+  --color-surface: var(--gc-surface);
+  --color-edge: var(--gc-edge);
+  --color-ink: var(--gc-ink);
+  --color-ink-dim: var(--gc-ink-dim);
+  --color-ink-faint: var(--gc-ink-faint);
+  --color-accent: var(--gc-accent);
+  --color-accent-hot: var(--gc-accent-hot);
+  --color-flare: var(--gc-flare);
+  --color-peak: var(--gc-peak);
 
   --font-display: var(--font-space-grotesk);
   --font-mono: var(--font-plex-mono);
@@ -60,28 +79,39 @@ html {
 
 body {
   min-height: 100%;
-  background: var(--slate-void);
-  color: var(--bone);
+  background: var(--page-bg);
+  color: #f2f4ee;
   font-family: var(--font-display), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Engraved graph-paper grid — the drafting-table substrate of the instrument. */
+/* Engraved graph-paper grid — the drafting-table substrate (brass theme). */
 .engraved-grid {
   background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--slate-edge) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--slate-edge) 55%, transparent) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in oklab, var(--gc-edge) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--gc-edge) 55%, transparent) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: radial-gradient(120% 90% at 50% 40%, #000 35%, transparent 78%);
   -webkit-mask-image: radial-gradient(120% 90% at 50% 40%, #000 35%, transparent 78%);
 }
 
-/* Fine film grain over the whole instrument for a tactile, engraved feel. */
+/* Fine film grain for a tactile, engraved feel (brass theme). */
 .film-grain {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
   opacity: 0.06;
+}
+
+/* Halftone dot matrix living inside the bokeh glow (lime theme). */
+.halftone {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--gc-accent) 65%, transparent) 1.2px,
+    transparent 1.2px
+  );
+  background-size: 12px 12px;
+  mask-image: radial-gradient(70% 110% at 100% 40%, #000 30%, transparent 72%);
+  -webkit-mask-image: radial-gradient(70% 110% at 100% 40%, #000 30%, transparent 72%);
 }
 
 /* Tabular figures for any rolling numeric readout. */
@@ -97,7 +127,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.22em;
   font-size: 0.6875rem;
-  color: var(--bone-dim);
+  color: var(--gc-ink-dim);
 }
 
 @media (prefers-reduced-motion: reduce) {
