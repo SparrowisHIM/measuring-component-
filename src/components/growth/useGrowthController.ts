@@ -19,6 +19,8 @@ export type GrowthController = {
   /** Let go at `fraction`: a flick spools the tape on with momentum and lands
    *  it on a month detent; a gentle release snaps to the nearest month. */
   release: (fraction: number) => void;
+  /** Rewind to zero and play the count-up reveal again. */
+  replay: () => void;
   /** True while the one-time count-up reveal is playing. */
   revealing: boolean;
 };
@@ -49,6 +51,18 @@ export function useGrowthController(onReveal?: () => void, detents = 2): GrowthC
   }, [onReveal]);
   const [revealing, setRevealing] = useState(false);
 
+  const startReveal = useCallback(() => {
+    setRevealing(true);
+    revealCtrl.current = animate(target, 1, {
+      duration: REVEAL_MS / 1000,
+      ease: REVEAL_EASE,
+      onComplete: () => {
+        setRevealing(false);
+        onRevealRef.current?.();
+      },
+    });
+  }, [target]);
+
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -61,15 +75,7 @@ export function useGrowthController(onReveal?: () => void, detents = 2): GrowthC
         for (const e of entries) {
           if (e.isIntersecting && !started.current) {
             started.current = true;
-            setRevealing(true);
-            revealCtrl.current = animate(target, 1, {
-              duration: REVEAL_MS / 1000,
-              ease: REVEAL_EASE,
-              onComplete: () => {
-                setRevealing(false);
-                onRevealRef.current?.();
-              },
-            });
+            startReveal();
           }
         }
       },
@@ -77,7 +83,7 @@ export function useGrowthController(onReveal?: () => void, detents = 2): GrowthC
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [reduce, target]);
+  }, [reduce, target, startReveal]);
 
   const scrubTo = useCallback(
     (fraction: number) => {
@@ -117,5 +123,14 @@ export function useGrowthController(onReveal?: () => void, detents = 2): GrowthC
     [detents, target],
   );
 
-  return { progress, rootRef, scrubTo, release, revealing };
+  const replay = useCallback(() => {
+    if (reduce) return;
+    revealCtrl.current?.stop();
+    flingCtrl.current?.stop();
+    target.jump(0);
+    progress.jump(0);
+    startReveal();
+  }, [reduce, target, progress, startReveal]);
+
+  return { progress, rootRef, scrubTo, release, replay, revealing };
 }

@@ -74,7 +74,7 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
     window.setTimeout(() => setArrived(false), 1100);
   }, []);
 
-  const { progress, rootRef, scrubTo, release, revealing } = useGrowthController(
+  const { progress, rootRef, scrubTo, release, replay, revealing } = useGrowthController(
     arrive,
     data.points.length,
   );
@@ -286,6 +286,41 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
 
       {/* Embers lift off the line and feed the number — only during the reveal */}
       <Embers series={data} progress={progress} active={revealing} />
+
+      {/* Replay — rewinds the tape and runs the count-up again */}
+      <AnimatePresence>
+        {settled && !revealing && !reduce && (
+          <motion.button
+            key="replay"
+            type="button"
+            aria-label="Replay the count-up"
+            onClick={replay}
+            className="absolute right-4 top-4 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-edge/70 bg-surface/50 text-ink-dim outline-none backdrop-blur-sm transition-colors duration-200 hover:border-accent/40 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/60"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            whileTap={{ scale: 0.9, rotate: -90 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M3 3v5h5"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Cursor sheen */}
       <motion.div
