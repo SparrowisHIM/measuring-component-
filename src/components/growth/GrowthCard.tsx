@@ -97,16 +97,21 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
     setIdx((prev) => (prev === i ? prev : i));
   });
 
-  // Milestones: chips light as the reading passes them; upward crossings burst.
+  // Milestones: chips light as the reading passes them; upward crossings
+  // burst — a ring and sparks behind the number, a squash-and-settle of the
+  // readout, and a shockwave down the scrubber's wire.
   const initialReached = reachedMilestone(data, interpolateValue(data, progress.get()));
   const prevReached = useRef<number | null>(initialReached);
   const [lit, setLit] = useState(initialReached);
   const [burstKey, setBurstKey] = useState(0);
+  const [bursting, setBursting] = useState(false);
   useMotionValueEvent(value, "change", (v) => {
     const m = reachedMilestone(data, v);
     if (m === prevReached.current) return;
     if (m !== null && (prevReached.current === null || m > prevReached.current)) {
       setBurstKey((k) => k + 1);
+      setBursting(true);
+      window.setTimeout(() => setBursting(false), 620);
     }
     prevReached.current = m;
     setLit(m);
@@ -146,7 +151,20 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
         animate={{ scale: arrived && !reduce ? [1, 1.03, 1] : 1 }}
         transition={{ duration: 0.9, ease: "easeOut" }}
       >
-        <RollingNumber value={value} max={goal} className="text-[clamp(3.25rem,9vw,8.75rem)]" />
+        {/* Squash-and-settle when a milestone falls, anchored at the baseline */}
+        <motion.span
+          className="inline-block"
+          style={{ transformOrigin: "10% 100%" }}
+          initial={false}
+          animate={
+            bursting && !reduce
+              ? { scaleX: [1, 1.05, 0.99, 1], scaleY: [1, 0.9, 1.04, 1] }
+              : { scaleX: 1, scaleY: 1 }
+          }
+          transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
+        >
+          <RollingNumber value={value} max={goal} className="text-[clamp(3.25rem,9vw,8.75rem)]" />
+        </motion.span>
         <span className="mt-3 font-display text-lg font-medium tracking-wide text-ink-dim sm:text-xl">
           {data.label}
         </span>
@@ -161,22 +179,49 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
         ))}
       </div>
 
-      {/* Milestone crossing — a single expanding ring behind the number */}
+      {/* Milestone crossing — an expanding ring and sparks behind the number */}
       <AnimatePresence>
         {burstKey > 0 && !reduce && (
-          <motion.span
-            key={burstKey}
-            className="pointer-events-none absolute left-[34%] top-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full border"
-            style={{
-              width: "24vmin",
-              height: "24vmin",
-              borderColor: "color-mix(in oklab, var(--gc-accent-hot) 55%, transparent)",
-            }}
-            initial={{ scale: 0.4, opacity: 0.6 }}
-            animate={{ scale: 1.7, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.9, ease: "easeOut" }}
-          />
+          <span key={burstKey} className="pointer-events-none absolute left-[34%] top-[46%]">
+            <motion.span
+              className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+              style={{
+                width: "24vmin",
+                height: "24vmin",
+                borderColor: "color-mix(in oklab, var(--gc-accent-hot) 55%, transparent)",
+              }}
+              initial={{ scale: 0.4, opacity: 0.6 }}
+              animate={{ scale: 1.7, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
+            />
+            {Array.from({ length: 10 }, (_, i) => {
+              const angle = (i / 10) * Math.PI * 2 + burstKey * 0.9;
+              const dist = 64 + ((i * 53 + burstKey * 17) % 48);
+              const size = 3 + ((i * 29) % 3);
+              return (
+                <motion.span
+                  key={i}
+                  className="absolute left-0 top-0 rounded-full"
+                  style={{
+                    width: size,
+                    height: size,
+                    background: "var(--gc-accent-hot)",
+                    boxShadow: "0 0 8px 1px color-mix(in oklab, var(--gc-accent) 75%, transparent)",
+                  }}
+                  initial={{ x: 0, y: 0, opacity: 0.95, scale: 1 }}
+                  animate={{
+                    x: Math.cos(angle) * dist,
+                    y: Math.sin(angle) * dist,
+                    opacity: 0,
+                    scale: 0.3,
+                  }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.65, ease: "easeOut", delay: (i % 3) * 0.04 }}
+                />
+              );
+            })}
+          </span>
         )}
       </AnimatePresence>
     </div>
@@ -210,6 +255,7 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
               onScrub={scrubTo}
               onRelease={release}
               onInteract={onInteract}
+              pulseKey={burstKey}
               hint={hint}
             />
           </div>
@@ -223,6 +269,7 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
               onScrub={scrubTo}
               onRelease={release}
               onInteract={onInteract}
+              pulseKey={burstKey}
               hint={hint}
             />
           </div>

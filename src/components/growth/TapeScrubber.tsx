@@ -76,23 +76,37 @@ function pocket(d: number, depth: number, r: number): number {
   return depth * Math.exp(-(((d * d) / (2 * s * s)) ** 1.35));
 }
 
-function buildWirePath(geo: Geo, len: number, head: number, depth: number, horizontal: boolean): string {
-  const span = geo.knobR * 3.4;
-  const from = Math.max(0, head - span);
-  const to = Math.min(len, head + span);
+/** Milestone shockwave: a wavefront that rolls from the head toward both
+ *  ends of the wire, fading as it travels. `t` runs 0 -> 1; 1 is at rest. */
+function shockwave(d: number, len: number, head: number, t: number): number {
+  if (t >= 1) return 0;
+  const span = Math.max(head, len - head);
+  const front = t * span;
+  const amp = 9 * (1 - t);
+  const w = 26;
+  return amp * Math.exp(-((Math.abs(d) - front) ** 2) / (2 * w * w));
+}
+
+function buildWirePath(
+  geo: Geo,
+  len: number,
+  head: number,
+  depth: number,
+  horizontal: boolean,
+  pulse = 1,
+): string {
   const pts: Array<[number, number]> = [];
   const push = (main: number, cross: number) =>
     pts.push(horizontal ? [main, cross] : [cross, main]);
 
-  push(0, geo.wire);
-  push(from, geo.wire);
-  const steps = 44;
-  for (let i = 1; i < steps; i++) {
-    const main = from + ((to - from) * i) / steps;
-    push(main, geo.wire - pocket(main - head, depth, geo.knobR));
+  // Sample the full wire — dense enough for the pocket, cheap enough to
+  // rebuild every frame — so the shockwave can travel its whole length.
+  const steps = Math.max(56, Math.round(len / 9));
+  for (let i = 0; i <= steps; i++) {
+    const main = (len * i) / steps;
+    const d = main - head;
+    push(main, geo.wire - pocket(d, depth, geo.knobR) - shockwave(d, len, head, pulse));
   }
-  push(to, geo.wire);
-  push(len, geo.wire);
 
   return pts
     .map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`)
@@ -105,6 +119,7 @@ export function TapeScrubber({
   onScrub,
   onRelease,
   onInteract,
+  pulseKey = 0,
   horizontal = false,
   hint = false,
 }: {
@@ -116,6 +131,8 @@ export function TapeScrubber({
   onRelease: (fraction: number) => void;
   /** First pointer/key interaction — used to retire the drag hint. */
   onInteract?: () => void;
+  /** Bump to fire a shockwave down the wire (milestone crossings). */
+  pulseKey?: number;
   horizontal?: boolean;
   hint?: boolean;
 }) {
@@ -200,6 +217,7 @@ export function TapeScrubber({
 
   // The wire path is written imperatively — no React render per frame. The
   // pocket follows the nudged knob so the wire stays wrapped around it.
+  const pulse = useMotionValue(1);
   const wireRef = useRef<SVGPathElement>(null);
   const initialPath = useMemo(
     () => buildWirePath(geo, len, head, baseDepth, horizontal),
@@ -208,11 +226,20 @@ export function TapeScrubber({
   const rebuildWire = useCallback(() => {
     wireRef.current?.setAttribute(
       "d",
-      buildWirePath(geo, len, head + nudge.get(), depth.get(), horizontal),
+      buildWirePath(geo, len, head + nudge.get(), depth.get(), horizontal, pulse.get()),
     );
-  }, [geo, len, head, nudge, depth, horizontal]);
+  }, [geo, len, head, nudge, depth, pulse, horizontal]);
   useMotionValueEvent(depth, "change", rebuildWire);
   useMotionValueEvent(nudge, "change", rebuildWire);
+  useMotionValueEvent(pulse, "change", rebuildWire);
+
+  // Each milestone crossing rings the wire once.
+  useEffect(() => {
+    if (!pulseKey || reduce) return;
+    pulse.jump(0);
+    const wave = animate(pulse, 1, { duration: 0.8, ease: "easeOut" });
+    return () => wave.stop();
+  }, [pulseKey, reduce, pulse]);
 
   // Active month index — drives label emphasis and the slider semantics.
   // Crossing a month at speed clicks: a quick extra squeeze of the pocket
