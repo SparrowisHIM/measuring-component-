@@ -1,0 +1,458 @@
+"use client";
+
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+  useVelocity,
+  type MotionValue,
+} from "motion/react";
+import { formatValue, seriesMax, type MetricSeries } from "@/lib/metric";
+
+/*
+ * The instrument's signature: the reading head never moves — the timeline is
+ * a ruler tape that scrolls past it. The wire is a taut string and the knob a
+ * puck pressing through it, so the wire deforms around the knob's silhouette.
+ */
+
+const MINOR = 4; // minor tick subdivisions per month
+
+type Geo = {
+  step: number; // px of tape per month
+  railCross: number; // rail size across the tape axis
+  wire: number; // resting wire position (cross axis)
+  knobOffset: number; // knob centre, past the wire (cross axis)
+  knobR: number;
+  labelEnd: number; // labels sit before this cross-axis line
+  tickFrom: number;
+  tickMinor: number; // minor tick length
+  tickMajor: number;
+};
+
+const VERTICAL: Geo = {
+  step: 64,
+  railCross: 204,
+  wire: 148,
+  knobOffset: 16,
+  knobR: 30,
+  labelEnd: 92,
+  tickFrom: 100,
+  tickMinor: 12,
+  tickMajor: 24,
+};
+
+const HORIZONTAL: Geo = {
+  step: 88,
+  railCross: 118,
+  wire: 34,
+  knobOffset: 15,
+  knobR: 24,
+  labelEnd: 118, // labels hang below the ticks
+  tickFrom: 68,
+  tickMinor: 8,
+  tickMajor: 16,
+};
+
+const GAP = 6; // breathing room between wire and knob edge
+
+/** "Mar 2024" -> "Mar '24". */
+const shortLabel = (label: string) => {
+  const [m, y] = label.split(" ");
+  return `${m} '${y.slice(2)}`;
+};
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+/** Wire deflection at distance d from the head — a flat-bottomed pocket that
+ *  hugs the knob's circular silhouette, easing smoothly back to straight. */
+function pocket(d: number, depth: number, r: number): number {
+  const s = r * 0.85;
+  return depth * Math.exp(-(((d * d) / (2 * s * s)) ** 1.35));
+}
+
+function buildWirePath(geo: Geo, len: number, head: number, depth: number, horizontal: boolean): string {
+  const span = geo.knobR * 3.4;
+  const from = Math.max(0, head - span);
+  const to = Math.min(len, head + span);
+  const pts: Array<[number, number]> = [];
+  const push = (main: number, cross: number) =>
+    pts.push(horizontal ? [main, cross] : [cross, main]);
+
+  push(0, geo.wire);
+  push(from, geo.wire);
+  const steps = 44;
+  for (let i = 1; i < steps; i++) {
+    const main = from + ((to - from) * i) / steps;
+    push(main, geo.wire - pocket(main - head, depth, geo.knobR));
+  }
+  push(to, geo.wire);
+  push(len, geo.wire);
+
+  return pts
+    .map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`)
+    .join(" ");
+}
+
+export function TapeScrubber({
+  series,
+  progress,
+  onScrub,
+  onInteract,
+  horizontal = false,
+  hint = false,
+}: {
+  series: MetricSeries;
+  progress: MotionValue<number>;
+  /** Continuous while dragging; snapped to a month on release/keys. */
+  onScrub: (fraction: number) => void;
+  /** First pointer/key interaction — used to retire the drag hint. */
+  onInteract?: () => void;
+  horizontal?: boolean;
+  hint?: boolean;
+}) {
+  const reduce = useReducedMotion();
+  const uid = useId();
+  const geo = horizontal ? HORIZONTAL : VERTICAL;
+  const last = series.points.length - 1;
+
+  // Measured main-axis length; the head sits at a fixed anchor within it.
+  const railRef = useRef<HTMLDivElement>(null);
+  const [len, setLen] = useState(480);
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const box = entry.contentRect;
+      setLen(Math.round(horizontal ? box.width : box.height));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [horizontal]);
+  const head = len * (horizontal ? 0.5 : 0.46);
+
+  // Tape offset: month i lives at i*step on the tape; the active month is
+  // pinned under the head.
+  const tapeOffset = useTransform(progress, (p) => head - clamp01(p) * last * geo.step);
+
+  // Pocket depth = base hug + a squeeze that grows with scrub velocity + a
+  // slow idle breath while the hint is up. Spring-smoothed.
+  const baseDepth = geo.knobR + GAP - geo.knobOffset;
+  const velocity = useVelocity(progress);
+  const idle = useMotionValue(0);
+  const depthTarget = useTransform(
+    () => baseDepth + Math.min(Math.abs(velocity.get()) * 26, 14) + idle.get(),
+  );
+  const depth = useSpring(depthTarget, { stiffness: 260, damping: 22, mass: 0.6 });
+
+  useEffect(() => {
+    if (!hint || reduce) return;
+    const breath = animate(idle, [0, 5, 0], {
+      duration: 2.2,
+      repeat: Infinity,
+      repeatDelay: 1.1,
+      ease: "easeInOut",
+    });
+    return () => {
+      breath.stop();
+      idle.set(0);
+    };
+  }, [hint, reduce, idle]);
+
+  // The wire path is written imperatively — no React render per frame.
+  const wireRef = useRef<SVGPathElement>(null);
+  const initialPath = useMemo(
+    () => buildWirePath(geo, len, head, baseDepth, horizontal),
+    [geo, len, head, baseDepth, horizontal],
+  );
+  useMotionValueEvent(depth, "change", (d) => {
+    wireRef.current?.setAttribute("d", buildWirePath(geo, len, head, d, horizontal));
+  });
+
+  // Active month index — drives label emphasis and the slider semantics.
+  const [active, setActive] = useState(() => Math.round(clamp01(progress.get()) * last));
+  useMotionValueEvent(progress, "change", (p) => {
+    const idx = Math.round(clamp01(p) * last);
+    setActive((prev) => (prev === idx ? prev : idx));
+  });
+
+  /* ------------------------------ dragging ------------------------------ */
+
+  const drag = useRef<{ startPos: number; startP: number; moved: number } | null>(null);
+
+  const mainPos = (e: React.PointerEvent) => {
+    const rect = railRef.current!.getBoundingClientRect();
+    return horizontal ? e.clientX - rect.left : e.clientY - rect.top;
+  };
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (!railRef.current) return;
+      onInteract?.();
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      drag.current = { startPos: mainPos(e), startP: clamp01(progress.get()), moved: 0 };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onInteract, progress, horizontal],
+  );
+
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const pos = mainPos(e);
+      d.moved = Math.max(d.moved, Math.abs(pos - d.startPos));
+      // Pulling the tape toward the past drags the reading back in time.
+      onScrub(clamp01(d.startP + (d.startPos - pos) / (geo.step * last)));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onScrub, geo.step, last, horizontal],
+  );
+
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      const d = drag.current;
+      drag.current = null;
+      (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+      if (!d) return;
+      if (d.moved < 5) {
+        // A tap reads the tape where it was touched: jump to that month.
+        const idx = Math.round(d.startP * last + (mainPos(e) - head) / geo.step);
+        onScrub(Math.min(last, Math.max(0, idx)) / last);
+      } else {
+        // Settle the reading on the nearest month.
+        const raw = clamp01(d.startP + (d.startPos - mainPos(e)) / (geo.step * last));
+        onScrub(Math.round(raw * last) / last);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onScrub, geo.step, last, head, horizontal],
+  );
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const idx = Math.round(clamp01(progress.get()) * last);
+      switch (e.key) {
+        case "ArrowUp":
+        case "ArrowRight":
+          onScrub(Math.min(last, idx + 1) / last);
+          break;
+        case "ArrowDown":
+        case "ArrowLeft":
+          onScrub(Math.max(0, idx - 1) / last);
+          break;
+        case "Home":
+          onScrub(0);
+          break;
+        case "End":
+          onScrub(1);
+          break;
+        default:
+          return;
+      }
+      onInteract?.();
+      e.preventDefault();
+    },
+    [last, progress, onScrub, onInteract],
+  );
+
+  /* ------------------------------ rendering ----------------------------- */
+
+  const activePoint = series.points[active];
+  const gradientId = `${uid}-wire`;
+
+  // Knob rests where the pocket floor is — pressed into the wire.
+  const knobMain = head - geo.knobR;
+  const knobCross = geo.wire + geo.knobOffset - geo.knobR;
+
+  const fadeMask = horizontal
+    ? "linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)"
+    : "linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent)";
+
+  return (
+    <div
+      ref={railRef}
+      role="slider"
+      tabIndex={0}
+      aria-label={`Scrub through ${series.owner.name}'s ${series.label.toLowerCase()} timeline`}
+      aria-orientation={horizontal ? "horizontal" : "vertical"}
+      aria-valuemin={series.points[0].value}
+      aria-valuemax={seriesMax(series)}
+      aria-valuenow={activePoint.value}
+      aria-valuetext={`${formatValue(activePoint.value)} ${series.label} in ${activePoint.label}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onKeyDown={onKeyDown}
+      className="relative shrink-0 cursor-grab touch-none outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-accent/60"
+      style={
+        horizontal
+          ? { height: geo.railCross, width: "100%" }
+          : { width: geo.railCross, height: "100%" }
+      }
+    >
+      {/* The tape: month chips + ruler ticks, scrolling past the head */}
+      <div className="absolute inset-0 overflow-hidden" style={{ maskImage: fadeMask, WebkitMaskImage: fadeMask }}>
+        <motion.div className="absolute inset-0" style={horizontal ? { x: tapeOffset } : { y: tapeOffset }}>
+          {series.points.map((pt, i) => {
+            const on = i === active;
+            return (
+              <div
+                key={pt.label}
+                className={
+                  horizontal
+                    ? "absolute flex -translate-x-1/2 flex-col items-center gap-1.5"
+                    : "absolute flex -translate-y-1/2 items-center justify-end gap-2"
+                }
+                style={
+                  horizontal
+                    ? { left: i * geo.step, top: geo.tickFrom }
+                    : { top: i * geo.step, right: geo.railCross - geo.labelEnd - geo.tickMajor - 8 }
+                }
+              >
+                {!horizontal && (
+                  <span
+                    className={`whitespace-nowrap rounded-md border px-2 py-0.5 font-mono text-[11px] tracking-tight transition-colors duration-200 ${
+                      on ? "border-edge bg-surface/80 text-ink" : "border-transparent text-ink-dim/70"
+                    }`}
+                  >
+                    {shortLabel(pt.label)}
+                  </span>
+                )}
+                <span
+                  className="transition-all duration-200"
+                  style={{
+                    background: on ? "var(--gc-accent)" : "var(--gc-ink-faint)",
+                    ...(horizontal
+                      ? { width: 1.5, height: on ? geo.tickMajor + 4 : geo.tickMajor }
+                      : { height: 1.5, width: on ? geo.tickMajor + 4 : geo.tickMajor }),
+                  }}
+                />
+                {horizontal && (
+                  <span
+                    className={`whitespace-nowrap rounded-md border px-1.5 py-0.5 font-mono text-[10px] tracking-tight transition-colors duration-200 ${
+                      on ? "border-edge bg-surface/80 text-ink" : "border-transparent text-ink-dim/70"
+                    }`}
+                  >
+                    {shortLabel(pt.label)}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Minor ticks — the ruler's fine graduation */}
+          {series.points.slice(0, -1).map((pt, i) =>
+            Array.from({ length: MINOR - 1 }, (_, k) => {
+              const at = (i + (k + 1) / MINOR) * geo.step;
+              return (
+                <span
+                  key={`${pt.label}-${k}`}
+                  className="absolute bg-ink-faint/50"
+                  style={
+                    horizontal
+                      ? { left: at, top: geo.tickFrom + 2, width: 1, height: geo.tickMinor }
+                      : { top: at, right: geo.railCross - geo.labelEnd - geo.tickMajor - 8, height: 1, width: geo.tickMinor }
+                  }
+                />
+              );
+            }),
+          )}
+        </motion.div>
+      </div>
+
+      {/* Dark halo grounding the knob against the tape */}
+      <span
+        className="pointer-events-none absolute rounded-full"
+        style={{
+          width: geo.knobR * 3.6,
+          height: geo.knobR * 3.6,
+          ...(horizontal
+            ? { left: head - geo.knobR * 1.8, top: geo.wire + geo.knobOffset - geo.knobR * 1.8 }
+            : { top: head - geo.knobR * 1.8, left: geo.wire + geo.knobOffset - geo.knobR * 1.8 }),
+          background: "radial-gradient(circle, rgba(0,0,0,0.75) 30%, transparent 70%)",
+        }}
+      />
+
+      {/* The wire */}
+      <svg
+        className="pointer-events-none absolute inset-0 overflow-visible"
+        width={horizontal ? len : geo.railCross}
+        height={horizontal ? geo.railCross : len}
+        viewBox={`0 0 ${horizontal ? len : geo.railCross} ${horizontal ? geo.railCross : len}`}
+        aria-hidden
+      >
+        <defs>
+          <linearGradient
+            id={gradientId}
+            gradientUnits="userSpaceOnUse"
+            x1={horizontal ? 0 : geo.wire}
+            y1={horizontal ? geo.wire : 0}
+            x2={horizontal ? len : geo.wire}
+            y2={horizontal ? geo.wire : len}
+          >
+            <stop offset="0" stopColor="var(--gc-edge)" />
+            <stop offset={Math.max(0, head / len - 0.16)} stopColor="color-mix(in oklab, var(--gc-accent) 45%, var(--gc-edge))" />
+            <stop offset={head / len} stopColor="var(--gc-accent-hot)" />
+            <stop offset={Math.min(1, head / len + 0.22)} stopColor="var(--gc-accent)" />
+            <stop offset="1" stopColor="color-mix(in oklab, var(--gc-accent) 25%, var(--gc-edge))" />
+          </linearGradient>
+        </defs>
+        <path
+          ref={wireRef}
+          d={initialPath}
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          style={{ filter: "drop-shadow(0 0 7px color-mix(in oklab, var(--gc-accent) 55%, transparent))" }}
+        />
+      </svg>
+
+      {/* The knob — a puck pressed through the string */}
+      <div
+        className="pointer-events-none absolute flex items-center justify-center rounded-full border border-edge"
+        style={{
+          width: geo.knobR * 2,
+          height: geo.knobR * 2,
+          ...(horizontal ? { left: knobMain, top: knobCross } : { top: knobMain, left: knobCross }),
+          background: "radial-gradient(circle at 38% 30%, var(--gc-surface), var(--gc-bg) 78%)",
+          boxShadow:
+            "inset 0 1px 0 rgba(255,255,255,0.07), 0 12px 30px rgba(0,0,0,0.65), 0 0 0 1px color-mix(in oklab, var(--gc-accent) 18%, transparent)",
+        }}
+      >
+        <svg width={geo.knobR * 0.9} height={geo.knobR * 0.9} viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M6 13l6-5 6 5" stroke="var(--gc-accent-hot)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M6 18.5l6-5 6 5" stroke="var(--gc-accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      {/* Drag affordance — retired on first touch */}
+      <AnimatePresence>
+        {hint && (
+          <motion.span
+            key="hint"
+            className="panel-label pointer-events-none absolute text-[10px]"
+            style={
+              horizontal
+                ? { left: head + geo.knobR + 14, top: geo.wire + geo.knobOffset - 7 }
+                : { top: head + geo.knobR + 14, left: geo.wire + geo.knobOffset - 16 }
+            }
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.9 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            drag
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
