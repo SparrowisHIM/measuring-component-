@@ -158,9 +158,9 @@ export function TapeScrubber({
   // Elastic give: the knob leans into the drag direction and springs back,
   // so it answers your finger while the tape does the actual travel.
   const nudgeTarget = useTransform(() =>
-    Math.max(-16, Math.min(16, -velocity.get() * 30)),
+    Math.max(-28, Math.min(28, -velocity.get() * 60)),
   );
-  const nudge = useSpring(nudgeTarget, { stiffness: 320, damping: 24, mass: 0.5 });
+  const nudge = useSpring(nudgeTarget, { stiffness: 280, damping: 22, mass: 0.55 });
 
   useEffect(() => {
     if (!hint || reduce) return;
