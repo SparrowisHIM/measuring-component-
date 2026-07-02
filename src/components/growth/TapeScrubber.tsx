@@ -150,6 +150,13 @@ export function TapeScrubber({
   );
   const depth = useSpring(depthTarget, { stiffness: 260, damping: 22, mass: 0.6 });
 
+  // Elastic give: the knob leans into the drag direction and springs back,
+  // so it answers your finger while the tape does the actual travel.
+  const nudgeTarget = useTransform(() =>
+    Math.max(-16, Math.min(16, -velocity.get() * 30)),
+  );
+  const nudge = useSpring(nudgeTarget, { stiffness: 320, damping: 24, mass: 0.5 });
+
   useEffect(() => {
     if (!hint || reduce) return;
     const breath = animate(idle, [0, 5, 0], {
@@ -164,15 +171,21 @@ export function TapeScrubber({
     };
   }, [hint, reduce, idle]);
 
-  // The wire path is written imperatively — no React render per frame.
+  // The wire path is written imperatively — no React render per frame. The
+  // pocket follows the nudged knob so the wire stays wrapped around it.
   const wireRef = useRef<SVGPathElement>(null);
   const initialPath = useMemo(
     () => buildWirePath(geo, len, head, baseDepth, horizontal),
     [geo, len, head, baseDepth, horizontal],
   );
-  useMotionValueEvent(depth, "change", (d) => {
-    wireRef.current?.setAttribute("d", buildWirePath(geo, len, head, d, horizontal));
-  });
+  const rebuildWire = useCallback(() => {
+    wireRef.current?.setAttribute(
+      "d",
+      buildWirePath(geo, len, head + nudge.get(), depth.get(), horizontal),
+    );
+  }, [geo, len, head, nudge, depth, horizontal]);
+  useMotionValueEvent(depth, "change", rebuildWire);
+  useMotionValueEvent(nudge, "change", rebuildWire);
 
   // Active month index — drives label emphasis and the slider semantics.
   const [active, setActive] = useState(() => Math.round(clamp01(progress.get()) * last));
@@ -266,8 +279,10 @@ export function TapeScrubber({
   const activePoint = series.points[active];
   const gradientId = `${uid}-wire`;
 
-  // Knob rests where the pocket floor is — pressed into the wire.
-  const knobMain = head - geo.knobR;
+  // Knob rests where the pocket floor is — pressed into the wire — and
+  // rides its elastic nudge along the tape axis.
+  const knobMain = useTransform(() => head + nudge.get() - geo.knobR);
+  const haloMain = useTransform(() => head + nudge.get() - geo.knobR * 1.8);
   const knobCross = geo.wire + geo.knobOffset - geo.knobR;
 
   const fadeMask = horizontal
@@ -368,14 +383,14 @@ export function TapeScrubber({
       </div>
 
       {/* Dark halo grounding the knob against the tape */}
-      <span
+      <motion.span
         className="pointer-events-none absolute rounded-full"
         style={{
           width: geo.knobR * 3.6,
           height: geo.knobR * 3.6,
           ...(horizontal
-            ? { left: head - geo.knobR * 1.8, top: geo.wire + geo.knobOffset - geo.knobR * 1.8 }
-            : { top: head - geo.knobR * 1.8, left: geo.wire + geo.knobOffset - geo.knobR * 1.8 }),
+            ? { left: 0, top: geo.wire + geo.knobOffset - geo.knobR * 1.8, x: haloMain }
+            : { top: 0, left: geo.wire + geo.knobOffset - geo.knobR * 1.8, y: haloMain }),
           background: "radial-gradient(circle, rgba(0,0,0,0.75) 30%, transparent 70%)",
         }}
       />
@@ -416,12 +431,12 @@ export function TapeScrubber({
       </svg>
 
       {/* The knob — a puck pressed through the string */}
-      <div
+      <motion.div
         className="pointer-events-none absolute flex items-center justify-center rounded-full border border-edge"
         style={{
           width: geo.knobR * 2,
           height: geo.knobR * 2,
-          ...(horizontal ? { left: knobMain, top: knobCross } : { top: knobMain, left: knobCross }),
+          ...(horizontal ? { left: 0, top: knobCross, x: knobMain } : { top: 0, left: knobCross, y: knobMain }),
           background: "radial-gradient(circle at 38% 30%, var(--gc-surface), var(--gc-bg) 78%)",
           boxShadow:
             "inset 0 1px 0 rgba(255,255,255,0.07), 0 12px 30px rgba(0,0,0,0.65), 0 0 0 1px color-mix(in oklab, var(--gc-accent) 18%, transparent)",
@@ -431,7 +446,7 @@ export function TapeScrubber({
           <path d="M6 13l6-5 6 5" stroke="var(--gc-accent-hot)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M6 18.5l6-5 6 5" stroke="var(--gc-accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </div>
+      </motion.div>
 
       {/* Drag affordance — retired on first touch */}
       <AnimatePresence>
