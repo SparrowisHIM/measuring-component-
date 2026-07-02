@@ -54,6 +54,26 @@ export const followers: MetricSeries = {
   ],
 };
 
+export const stars: MetricSeries = {
+  label: "GitHub Stars",
+  owner: { name: "Vernier UI", handle: "@vernier-ui", verified: false },
+  milestones: [500, 2500, 5000],
+  points: [
+    { label: "Jul 2024", value: 40 },
+    { label: "Aug 2024", value: 90 },
+    { label: "Sep 2024", value: 160 },
+    { label: "Oct 2024", value: 240 },
+    { label: "Nov 2024", value: 330 },
+    { label: "Dec 2024", value: 480 },
+    { label: "Jan 2025", value: 900 },
+    { label: "Feb 2025", value: 1450 },
+    { label: "Mar 2025", value: 2600 },
+    { label: "Apr 2025", value: 3900 },
+    { label: "May 2025", value: 4600 },
+    { label: "Jun 2025", value: 5000 },
+  ],
+};
+
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
 export type Sample = {
@@ -106,5 +126,13 @@ export function reachedMilestone(series: MetricSeries, value: number): number | 
   return reached;
 }
 
+/** Month-over-month change at a point index (0 at the starting point). */
+export const monthDelta = (series: MetricSeries, index: number) =>
+  index > 0 ? series.points[index].value - series.points[index - 1].value : 0;
+
 const grouper = new Intl.NumberFormat("en-US");
 export const formatValue = (n: number) => grouper.format(n);
+
+/** 1000 -> "1K", 2500 -> "2.5K" — milestone chip labels. */
+export const compactValue = (n: number) =>
+  new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
