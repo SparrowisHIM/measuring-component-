@@ -23,10 +23,15 @@ function Wheel({
   active: boolean;
 }) {
   const power = 10 ** place;
-  // Position 0..10 within the 11-cell strip; % keeps it size-independent.
-  // k = 10 - pos maps onto the descending strip so higher digits enter from top.
+  // Mechanical odometer: the wheel sits planted on its integer digit and only
+  // rolls through a carry — the last 10% of the unit below. At rest every
+  // digit is crisp at any value; k = 10 - pos maps onto the descending strip
+  // so higher digits enter from the top.
   const y = useTransform(value, (v) => {
-    const pos = (((v / power) % 10) + 10) % 10;
+    const x = Math.max(0, v) / power;
+    const digit = Math.floor(x % 10);
+    const carry = Math.max(0, ((x % 1) - 0.9) * 10);
+    const pos = (digit + carry) % 10;
     const k = 10 - pos;
     return `${-(k / STRIP.length) * 100}%`;
   });
