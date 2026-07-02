@@ -74,7 +74,10 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
     window.setTimeout(() => setArrived(false), 1100);
   }, []);
 
-  const { progress, rootRef, scrubTo, revealing } = useGrowthController(arrive);
+  const { progress, rootRef, scrubTo, release, revealing } = useGrowthController(
+    arrive,
+    data.points.length,
+  );
   const value = useTransform(progress, (p) => interpolateValue(data, p));
 
   // Below this width the card stacks: readout on top, tape along the bottom.
@@ -205,6 +208,7 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
               series={data}
               progress={progress}
               onScrub={scrubTo}
+              onRelease={release}
               onInteract={onInteract}
               hint={hint}
             />
@@ -217,6 +221,7 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
               series={data}
               progress={progress}
               onScrub={scrubTo}
+              onRelease={release}
               onInteract={onInteract}
               hint={hint}
             />

@@ -103,14 +103,17 @@ export function TapeScrubber({
   series,
   progress,
   onScrub,
+  onRelease,
   onInteract,
   horizontal = false,
   hint = false,
 }: {
   series: MetricSeries;
   progress: MotionValue<number>;
-  /** Continuous while dragging; snapped to a month on release/keys. */
+  /** Continuous while dragging; snapped to a month on taps/keys. */
   onScrub: (fraction: number) => void;
+  /** Letting go of a drag — the controller carries momentum from here. */
+  onRelease: (fraction: number) => void;
   /** First pointer/key interaction — used to retire the drag hint. */
   onInteract?: () => void;
   horizontal?: boolean;
@@ -146,12 +149,14 @@ export function TapeScrubber({
   const tapeOffset = useTransform(progress, (p) => head - tapePos(clamp01(p) * last));
 
   // Pocket depth = base hug + a squeeze that grows with scrub velocity + a
-  // slow idle breath while the hint is up. Spring-smoothed.
+  // click as each detent passes at speed + a slow idle breath while the hint
+  // is up. Spring-smoothed.
   const baseDepth = geo.knobR + GAP - geo.knobOffset;
   const velocity = useVelocity(progress);
   const idle = useMotionValue(0);
+  const click = useMotionValue(0);
   const depthTarget = useTransform(
-    () => baseDepth + Math.min(Math.abs(velocity.get()) * 26, 14) + idle.get(),
+    () => baseDepth + Math.min(Math.abs(velocity.get()) * 26, 14) + idle.get() + click.get() * 7,
   );
   const depth = useSpring(depthTarget, { stiffness: 260, damping: 22, mass: 0.6 });
 
@@ -193,11 +198,21 @@ export function TapeScrubber({
   useMotionValueEvent(nudge, "change", rebuildWire);
 
   // Active month index — drives label emphasis and the slider semantics.
+  // Crossing a month at speed clicks: a quick extra squeeze of the pocket
+  // and a pop of the knob, like the tape ticking through a detent.
   const [active, setActive] = useState(() => Math.round(clamp01(progress.get()) * last));
+  const prevActive = useRef(active);
   useMotionValueEvent(progress, "change", (p) => {
     const idx = Math.round(clamp01(p) * last);
-    setActive((prev) => (prev === idx ? prev : idx));
+    if (idx === prevActive.current) return;
+    prevActive.current = idx;
+    if (Math.abs(velocity.get()) > 0.45 && !reduce) {
+      click.jump(1);
+      animate(click, 0, { duration: 0.18, ease: "easeOut" });
+    }
+    setActive(idx);
   });
+  const knobScale = useTransform(click, (c) => 1 + c * 0.05);
 
   /* ------------------------------ dragging ------------------------------ */
 
@@ -244,13 +259,12 @@ export function TapeScrubber({
         const idx = Math.round(d.startP * last + (horizontal ? off : -off));
         onScrub(Math.min(last, Math.max(0, idx)) / last);
       } else {
-        // Settle the reading on the nearest month.
-        const raw = clamp01(d.startP + (d.startPos - mainPos(e)) / (geo.step * last));
-        onScrub(Math.round(raw * last) / last);
+        // Hand the drag off with its momentum — a flick keeps spooling.
+        onRelease(d.startP + (d.startPos - mainPos(e)) / (geo.step * last));
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onScrub, geo.step, last, head, horizontal],
+    [onScrub, onRelease, geo.step, last, head, horizontal],
   );
 
   const onKeyDown = useCallback(
@@ -442,6 +456,7 @@ export function TapeScrubber({
         style={{
           width: geo.knobR * 2,
           height: geo.knobR * 2,
+          scale: knobScale,
           ...(horizontal ? { left: 0, top: knobCross, x: knobMain } : { top: 0, left: knobCross, y: knobMain }),
           background: "radial-gradient(circle at 38% 30%, var(--gc-surface), var(--gc-bg) 78%)",
           boxShadow:
