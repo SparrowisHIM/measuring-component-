@@ -145,8 +145,22 @@ export function TapeScrubber({
     (months: number) => (horizontal ? months : last - months) * geo.step,
     [horizontal, last, geo.step],
   );
-  // The active month is pinned under the head.
-  const tapeOffset = useTransform(progress, (p) => head - tapePos(clamp01(p) * last));
+
+  // Past either end the tape doesn't stop dead — it stretches against a
+  // rubber limit (saturating at just over a month) and snaps back with a
+  // wobble on release. The reading itself stays clamped to real months.
+  const overF = useMotionValue(0);
+  const rubber = useCallback(
+    (x: number) => {
+      const limit = 1.25 / last;
+      return limit * Math.tanh(x / limit);
+    },
+    [last],
+  );
+
+  // The active month is pinned under the head. Progress is deliberately not
+  // clamped here: the fling's end-of-tape bounce lives just outside 0..1.
+  const tapeOffset = useTransform(() => head - tapePos((progress.get() + overF.get()) * last));
 
   // Pocket depth = base hug + a squeeze that grows with scrub velocity + a
   // click as each detent passes at speed + a slow idle breath while the hint
@@ -161,10 +175,13 @@ export function TapeScrubber({
   const depth = useSpring(depthTarget, { stiffness: 260, damping: 22, mass: 0.6 });
 
   // Elastic give: the knob leans into the drag direction and springs back,
-  // so it answers your finger while the tape does the actual travel.
-  const nudgeTarget = useTransform(() =>
-    Math.max(-28, Math.min(28, -velocity.get() * 60)),
-  );
+  // so it answers your finger while the tape does the actual travel. At the
+  // ends it strains against the overstretch instead.
+  const nudgeTarget = useTransform(() => {
+    const lean = -velocity.get() * 60;
+    const strain = -overF.get() * geo.step * last;
+    return Math.max(-30, Math.min(30, lean + strain));
+  });
   const nudge = useSpring(nudgeTarget, { stiffness: 280, damping: 22, mass: 0.55 });
 
   useEffect(() => {
@@ -240,11 +257,14 @@ export function TapeScrubber({
       if (!d) return;
       const pos = mainPos(e);
       d.moved = Math.max(d.moved, Math.abs(pos - d.startPos));
-      // Pulling the tape toward the past drags the reading back in time.
-      onScrub(clamp01(d.startP + (d.startPos - pos) / (geo.step * last)));
+      // Pulling the tape toward the past drags the reading back in time;
+      // anything past the ends becomes rubbery overstretch.
+      const raw = d.startP + (d.startPos - pos) / (geo.step * last);
+      onScrub(clamp01(raw));
+      overF.set(rubber(raw - clamp01(raw)));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onScrub, geo.step, last, horizontal],
+    [onScrub, rubber, overF, geo.step, last, horizontal],
   );
 
   const onPointerUp = useCallback(
@@ -253,6 +273,10 @@ export function TapeScrubber({
       drag.current = null;
       (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
       if (!d) return;
+      // Let any overstretch snap back — springy enough to wobble like rubber.
+      if (overF.get() !== 0) {
+        animate(overF, 0, { type: "spring", stiffness: 360, damping: 16 });
+      }
       if (d.moved < 5) {
         // A tap reads the tape where it was touched: jump to that month.
         const off = (mainPos(e) - head) / geo.step;
@@ -264,7 +288,7 @@ export function TapeScrubber({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onScrub, onRelease, geo.step, last, head, horizontal],
+    [onScrub, onRelease, overF, geo.step, last, head, horizontal],
   );
 
   const onKeyDown = useCallback(
