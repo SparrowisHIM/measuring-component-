@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
+import { frame, motion, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
 
 // Descending, with a leading 0, so counting up rolls the wheel *downward*
 // (each higher digit drops in from the top) and 9 -> 0 wraps without a seam.
@@ -99,7 +99,10 @@ export function RollingNumber({
   const [digits, setDigits] = useState(() => String(Math.max(1, Math.round(value.get()))).length);
   useMotionValueEvent(value, "change", (v) => {
     const n = String(Math.max(1, Math.round(v))).length;
-    setDigits((prev) => (prev === n ? prev : n));
+    // `value` is a transform, which motion re-fires synchronously *during*
+    // the parent's render — defer to the frame loop so React never sees a
+    // cross-component setState mid-render.
+    frame.read(() => setDigits((prev) => (prev === n ? prev : n)));
   });
 
   const cells: React.ReactNode[] = [];
