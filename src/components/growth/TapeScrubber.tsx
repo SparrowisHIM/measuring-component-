@@ -136,9 +136,14 @@ export function TapeScrubber({
   }, [horizontal]);
   const head = len * (horizontal ? 0.5 : 0.46);
 
-  // Tape offset: month i lives at i*step on the tape; the active month is
-  // pinned under the head.
-  const tapeOffset = useTransform(progress, (p) => head - clamp01(p) * last * geo.step);
+  // Tape layout: horizontally time runs left -> right; vertically the scale
+  // climbs — later months (higher values) sit toward the top, like a fader.
+  const tapePos = useCallback(
+    (months: number) => (horizontal ? months : last - months) * geo.step,
+    [horizontal, last, geo.step],
+  );
+  // The active month is pinned under the head.
+  const tapeOffset = useTransform(progress, (p) => head - tapePos(clamp01(p) * last));
 
   // Pocket depth = base hug + a squeeze that grows with scrub velocity + a
   // slow idle breath while the hint is up. Spring-smoothed.
@@ -235,7 +240,8 @@ export function TapeScrubber({
       if (!d) return;
       if (d.moved < 5) {
         // A tap reads the tape where it was touched: jump to that month.
-        const idx = Math.round(d.startP * last + (mainPos(e) - head) / geo.step);
+        const off = (mainPos(e) - head) / geo.step;
+        const idx = Math.round(d.startP * last + (horizontal ? off : -off));
         onScrub(Math.min(last, Math.max(0, idx)) / last);
       } else {
         // Settle the reading on the nearest month.
@@ -327,8 +333,8 @@ export function TapeScrubber({
                 }
                 style={
                   horizontal
-                    ? { left: i * geo.step, top: geo.tickFrom }
-                    : { top: i * geo.step, right: geo.railCross - geo.labelEnd - geo.tickMajor - 8 }
+                    ? { left: tapePos(i), top: geo.tickFrom }
+                    : { top: tapePos(i), right: geo.railCross - geo.labelEnd - geo.tickMajor - 8 }
                 }
               >
                 {!horizontal && (
@@ -365,7 +371,7 @@ export function TapeScrubber({
           {/* Minor ticks — the ruler's fine graduation */}
           {series.points.slice(0, -1).map((pt, i) =>
             Array.from({ length: MINOR - 1 }, (_, k) => {
-              const at = (i + (k + 1) / MINOR) * geo.step;
+              const at = tapePos(i + (k + 1) / MINOR);
               return (
                 <span
                   key={`${pt.label}-${k}`}
