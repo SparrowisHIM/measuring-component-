@@ -23,6 +23,8 @@ export type MetricSeries = {
     name: string;
     handle: string;
     verified: boolean;
+    /** Avatar image (public path or URL); falls back to an initial. */
+    avatar?: string;
   };
   /** Ordered scale points, low to high. */
   points: MetricPoint[];

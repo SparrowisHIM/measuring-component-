@@ -1,20 +1,35 @@
+import Image from "next/image";
 import type { MetricSeries } from "@/lib/metric";
 
 export function ProfileCard({ owner }: { owner: MetricSeries["owner"] }) {
   const initial = owner.name.charAt(0).toUpperCase();
+  const ring = {
+    boxShadow:
+      "0 0 0 1px color-mix(in oklab, var(--gc-accent) 45%, transparent), 0 6px 18px -6px color-mix(in oklab, var(--gc-accent) 70%, transparent)",
+  };
   return (
     <div className="flex items-center gap-3">
-      <span
-        className="flex h-11 w-11 items-center justify-center rounded-full font-display text-base font-semibold text-card"
-        style={{
-          background: "linear-gradient(140deg, var(--gc-accent-hot), var(--gc-accent))",
-          boxShadow:
-            "0 0 0 1px color-mix(in oklab, var(--gc-accent) 45%, transparent), 0 6px 18px -6px color-mix(in oklab, var(--gc-accent) 70%, transparent)",
-        }}
-        aria-hidden
-      >
-        {initial}
-      </span>
+      {owner.avatar ? (
+        <Image
+          src={owner.avatar}
+          alt=""
+          width={44}
+          height={44}
+          className="h-11 w-11 rounded-full object-cover"
+          style={ring}
+        />
+      ) : (
+        <span
+          className="flex h-11 w-11 items-center justify-center rounded-full font-display text-base font-semibold text-card"
+          style={{
+            background: "linear-gradient(140deg, var(--gc-accent-hot), var(--gc-accent))",
+            ...ring,
+          }}
+          aria-hidden
+        >
+          {initial}
+        </span>
+      )}
       <span className="flex flex-col">
         <span className="flex items-center gap-1.5">
           <span className="font-display text-base font-semibold text-ink">{owner.name}</span>
