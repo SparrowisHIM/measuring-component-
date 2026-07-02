@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { motion, useMotionTemplate, useTransform, type MotionValue } from "motion/react";
 import type { MetricSeries } from "@/lib/metric";
 import { curvePoints, smoothPath, type Pt } from "./curve";
@@ -24,6 +25,7 @@ export function GrowthLine({
   series: MetricSeries;
   progress: MotionValue<number>;
 }) {
+  const uid = useId();
   const pts = curvePoints(series, W);
   const line = smoothPath(pts);
   const area = `${line} L ${W},${H} L 0,${H} Z`;
@@ -43,30 +45,38 @@ export function GrowthLine({
         aria-hidden
       >
         <defs>
-          <linearGradient id="line-stroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="color-mix(in oklab, var(--brass) 60%, transparent)" />
-            <stop offset="60%" stopColor="var(--brass-hot)" />
-            <stop offset="100%" stopColor="var(--ember)" />
+          <linearGradient id={`${uid}-stroke`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="color-mix(in oklab, var(--gc-accent) 45%, transparent)" />
+            <stop offset="60%" stopColor="var(--gc-accent)" />
+            <stop offset="100%" stopColor="var(--gc-accent-hot)" />
           </linearGradient>
-          <linearGradient id="line-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="color-mix(in oklab, var(--ember) 22%, transparent)" />
+          <linearGradient id={`${uid}-fill`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="color-mix(in oklab, var(--gc-accent) 20%, transparent)" />
             <stop offset="100%" stopColor="transparent" />
           </linearGradient>
-          <clipPath id="reveal">
+          <clipPath id={`${uid}-reveal`}>
             <motion.rect x={0} y={-20} height={H + 40} style={{ width: revealW }} />
           </clipPath>
+          {/* Soften the area fill's trailing edge so it never ends in a wall */}
+          <linearGradient id={`${uid}-edge`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0.82" stopColor="#fff" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0.2" />
+          </linearGradient>
+          <mask id={`${uid}-edgemask`}>
+            <rect x={0} y={-20} width={W} height={H + 40} fill={`url(#${uid}-edge)`} />
+          </mask>
         </defs>
 
-        <g clipPath="url(#reveal)">
-          <path d={area} fill="url(#line-fill)" />
+        <g clipPath={`url(#${uid}-reveal)`}>
+          <path d={area} fill={`url(#${uid}-fill)`} mask={`url(#${uid}-edgemask)`} />
           <path
             d={line}
             fill="none"
-            stroke="url(#line-stroke)"
+            stroke={`url(#${uid}-stroke)`}
             strokeWidth={2.2}
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
-            style={{ filter: "drop-shadow(0 0 6px color-mix(in oklab, var(--ember) 55%, transparent))" }}
+            style={{ filter: "drop-shadow(0 0 6px color-mix(in oklab, var(--gc-accent) 50%, transparent))" }}
           />
         </g>
       </svg>
@@ -77,8 +87,8 @@ export function GrowthLine({
         style={{
           left: tipLeft,
           top: tipTop,
-          background: "var(--incandescent)",
-          boxShadow: "0 0 10px 2px var(--ember)",
+          background: "var(--gc-peak)",
+          boxShadow: "0 0 10px 2px color-mix(in oklab, var(--gc-accent) 80%, transparent)",
         }}
       />
     </div>
