@@ -17,7 +17,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "GrowthCard — an interactive growth widget",
   description:
-    "A reusable, data-driven growth card. It counts up when it scrolls into view, then hover or drag the timeline to inspect any month.",
+    "A reusable, themeable growth card. The month tape streams past a fixed reading head as it counts up — then drag the tape to inspect any month.",
 };
 
 export default function RootLayout({
