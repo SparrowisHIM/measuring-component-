@@ -449,7 +449,7 @@ export function TapeScrubber({
                   </span>
                 )}
                 <span
-                  className="transition-all duration-200"
+                  className="transition-[background-color,width,height] duration-200"
                   style={{
                     background: on ? "var(--gc-accent)" : "var(--gc-ink-faint)",
                     ...(horizontal

@@ -135,7 +135,11 @@ export function GrowthShowcase() {
 
   return (
     <div className="flex w-full min-w-0 flex-col items-center gap-10">
-      <div className="flex rounded-full border border-white/10 bg-white/[0.04] p-1">
+      <div
+        role="group"
+        aria-label="Choose growth metric voice"
+        className="flex rounded-full border border-white/10 bg-white/[0.04] p-1"
+      >
         {VOICES.map((v) => {
           const on = v.id === voice.id;
           return (
@@ -171,6 +175,7 @@ export function GrowthShowcase() {
                 <span
                   className="h-1.5 w-1.5 rounded-full"
                   style={{ background: v.accent, boxShadow: `0 0 6px ${v.accent}` }}
+                  aria-hidden
                 />
                 {v.name}
               </span>

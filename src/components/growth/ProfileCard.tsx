@@ -34,7 +34,7 @@ export function ProfileCard({ owner }: { owner: MetricSeries["owner"] }) {
         <span className="flex items-center gap-1.5">
           <span className="font-display text-base font-semibold text-ink">{owner.name}</span>
           {owner.verified && (
-            <svg width="17" height="17" viewBox="0 0 24 24" aria-label="Verified">
+            <svg width="17" height="17" viewBox="0 0 24 24" role="img" aria-label="Verified">
               <path
                 d="M12 2l2.3 1.7 2.8-.3 1 2.6 2.4 1.5-.7 2.8.7 2.8-2.4 1.5-1 2.6-2.8-.3L12 22l-2.3-1.7-2.8.3-1-2.6L3.5 16l.7-2.8-.7-2.8 2.4-1.5 1-2.6 2.8.3z"
                 fill="var(--gc-badge)"
