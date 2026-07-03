@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -79,16 +79,6 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
     data.points.length,
   );
   const value = useTransform(progress, (p) => interpolateValue(data, p));
-
-  // Below this width the card stacks: readout on top, tape along the bottom.
-  const [horizontal, setHorizontal] = useState(false);
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setHorizontal(entry.contentRect.width < 620));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [rootRef]);
 
   // Live month under the reading head.
   const [idx, setIdx] = useState(() => Math.round(clamp01(progress.get()) * last));
@@ -235,32 +225,34 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
       transition={{ duration: 0.6, ease: "easeOut" }}
       onPointerMove={onSheenMove}
       onPointerLeave={onSheenLeave}
-      className={`gc-${theme} relative w-full overflow-hidden rounded-[var(--radius)] border border-edge/70 bg-card shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)] ${
-        horizontal ? "aspect-[4/5] max-w-[560px]" : "aspect-video max-w-[1180px]"
-      } ${className}`}
+      className={`gc-${theme} growth-card-shell relative w-full overflow-hidden rounded-[var(--radius)] border border-edge/70 bg-card shadow-[0_40px_120px_-40px_rgba(0,0,0,0.9)] ${className}`}
     >
       <Atmosphere progress={progress} variant={theme} />
 
-      {horizontal ? (
-        <div className="relative z-10 flex h-full flex-col">
-          <div className="flex flex-1 flex-col justify-center px-7 pt-7">{readout}</div>
-          <div className="pointer-events-none relative mx-5 h-14 shrink-0">
-            <GrowthLine series={data} progress={progress} />
-          </div>
-          <div className="px-3 pb-4 pt-2">
-            <TapeScrubber
-              horizontal
-              series={data}
-              progress={progress}
-              onScrub={scrubTo}
-              onRelease={release}
-              onInteract={onInteract}
-              pulseKey={burstKey}
-              hint={hint}
-            />
+      <div className="growth-card-mobile relative z-10 h-full">
+        <div className="flex h-full flex-col">
+          <div className="flex min-h-0 flex-1 flex-col justify-center px-7 pt-7">{readout}</div>
+          <div className="mt-auto">
+            <div className="pointer-events-none relative mx-5 h-14 shrink-0">
+              <GrowthLine series={data} progress={progress} />
+            </div>
+            <div className="px-3 pb-4 pt-2">
+              <TapeScrubber
+                horizontal
+                series={data}
+                progress={progress}
+                onScrub={scrubTo}
+                onRelease={release}
+                onInteract={onInteract}
+                pulseKey={burstKey}
+                hint={hint}
+              />
+            </div>
           </div>
         </div>
-      ) : (
+      </div>
+
+      <div className="growth-card-desktop relative z-10 h-full">
         <div className="relative z-10 flex h-full items-stretch">
           <div className="h-full shrink-0 py-4 pl-4 sm:pl-6">
             <TapeScrubber
@@ -275,14 +267,12 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
           </div>
           <div className="flex min-w-0 flex-1 flex-col justify-center px-7 lg:px-12">{readout}</div>
         </div>
-      )}
+      </div>
 
       {/* Progressive growth line along the card's floor */}
-      {!horizontal && (
-        <div className="pointer-events-none absolute inset-x-8 bottom-6 h-[22%]">
-          <GrowthLine series={data} progress={progress} />
-        </div>
-      )}
+      <div className="growth-card-desktop pointer-events-none absolute inset-x-8 bottom-6 h-[22%]">
+        <GrowthLine series={data} progress={progress} />
+      </div>
 
       {/* Embers lift off the line and feed the number — only during the reveal */}
       <Embers series={data} progress={progress} active={revealing} />

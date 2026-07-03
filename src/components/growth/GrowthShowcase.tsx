@@ -68,11 +68,11 @@ function VoiceWash({
 
   return (
     <motion.div
-      className="relative flex w-full justify-center"
+      className="relative flex w-full min-w-0 justify-center"
       style={washing ? { clipPath: clip } : undefined}
     >
       <motion.div
-        className="flex w-full justify-center"
+        className="flex w-full min-w-0 justify-center"
         style={washing ? { filter: hot } : undefined}
       >
         {children}
@@ -134,7 +134,7 @@ export function GrowthShowcase() {
   };
 
   return (
-    <div className="flex w-full flex-col items-center gap-10">
+    <div className="flex w-full min-w-0 flex-col items-center gap-10">
       <div className="flex rounded-full border border-white/10 bg-white/[0.04] p-1">
         {VOICES.map((v) => {
           const on = v.id === voice.id;
@@ -179,11 +179,11 @@ export function GrowthShowcase() {
         })}
       </div>
 
-      <div ref={areaRef} className="relative flex w-full justify-center">
+      <div ref={areaRef} className="relative flex w-full min-w-0 justify-center">
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div
             key={voice.id}
-            className="flex w-full justify-center"
+            className="flex w-full min-w-0 justify-center"
             initial={false}
             animate={{ zIndex: 1, scale: 1, filter: "grayscale(0) brightness(1)" }}
             // The old voice drains beneath the wash: color pulled out,

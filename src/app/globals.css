@@ -121,6 +121,31 @@ body {
   font-feature-settings: "tnum" 1, "zero" 1;
 }
 
+/* Card layout is CSS-selected so mobile paints stacked before hydration. */
+.growth-card-shell {
+  aspect-ratio: 4 / 5;
+  max-width: 560px;
+}
+
+.growth-card-desktop {
+  display: none;
+}
+
+@media (min-width: 620px) {
+  .growth-card-shell {
+    aspect-ratio: 16 / 9;
+    max-width: 1180px;
+  }
+
+  .growth-card-mobile {
+    display: none;
+  }
+
+  .growth-card-desktop {
+    display: block;
+  }
+}
+
 /* Instrument-panel label: small, tracked-out, mono. */
 .panel-label {
   font-family: var(--font-mono), ui-monospace, monospace;
