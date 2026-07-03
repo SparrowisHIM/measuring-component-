@@ -22,7 +22,7 @@ export default function Home() {
             </span>
             <span className="h-px w-10 bg-white/15" aria-hidden />
           </div>
-          <h1 className="max-w-3xl text-balance font-display text-3xl font-semibold leading-[1.06] text-white/90 sm:text-4xl lg:text-5xl">
+          <h1 className="max-w-[20rem] text-balance font-display text-2xl font-semibold leading-tight text-white/90 sm:max-w-3xl sm:text-4xl sm:leading-[1.08] lg:text-5xl">
             One component, two voices. Drag the tape.
           </h1>
         </header>
