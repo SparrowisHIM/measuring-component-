@@ -154,12 +154,14 @@ export function TapeScrubber({
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => {
       const box = entry.contentRect;
-      setLen(Math.round(horizontal ? box.width : box.height));
+      const nextLen = Math.round(horizontal ? box.width : box.height);
+      if (nextLen > 0) setLen(nextLen);
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, [horizontal]);
-  const head = len * (horizontal ? 0.5 : 0.46);
+  const safeLen = Math.max(1, len);
+  const head = safeLen * (horizontal ? 0.5 : 0.46);
 
   // Tape layout: horizontally time runs left -> right; vertically the scale
   // climbs — later months (higher values) sit toward the top, like a fader.
@@ -230,15 +232,15 @@ export function TapeScrubber({
   const pulse = useMotionValue(1);
   const wireRef = useRef<SVGPathElement>(null);
   const initialPath = useMemo(
-    () => buildWirePath(geo, len, head, baseDepth, horizontal),
-    [geo, len, head, baseDepth, horizontal],
+    () => buildWirePath(geo, safeLen, head, baseDepth, horizontal),
+    [geo, safeLen, head, baseDepth, horizontal],
   );
   const rebuildWire = useCallback(() => {
     wireRef.current?.setAttribute(
       "d",
-      buildWirePath(geo, len, head + nudge.get(), depth.get(), horizontal, pulse.get()),
+      buildWirePath(geo, safeLen, head + nudge.get(), depth.get(), horizontal, pulse.get()),
     );
-  }, [geo, len, head, nudge, depth, pulse, horizontal]);
+  }, [geo, safeLen, head, nudge, depth, pulse, horizontal]);
   useMotionValueEvent(depth, "change", rebuildWire);
   useMotionValueEvent(nudge, "change", rebuildWire);
   useMotionValueEvent(pulse, "change", rebuildWire);
@@ -383,6 +385,7 @@ export function TapeScrubber({
 
   const activePoint = series.points[active];
   const gradientId = `${uid}-wire`;
+  const headRatio = head / safeLen;
 
   // Knob rests where the pocket floor is — pressed into the wire — and
   // rides its elastic nudge along the tape axis.
@@ -506,9 +509,9 @@ export function TapeScrubber({
       {/* The wire */}
       <svg
         className="pointer-events-none absolute inset-0 overflow-visible"
-        width={horizontal ? len : geo.railCross}
-        height={horizontal ? geo.railCross : len}
-        viewBox={`0 0 ${horizontal ? len : geo.railCross} ${horizontal ? geo.railCross : len}`}
+        width={horizontal ? safeLen : geo.railCross}
+        height={horizontal ? geo.railCross : safeLen}
+        viewBox={`0 0 ${horizontal ? safeLen : geo.railCross} ${horizontal ? geo.railCross : safeLen}`}
         aria-hidden
       >
         <defs>
@@ -517,13 +520,13 @@ export function TapeScrubber({
             gradientUnits="userSpaceOnUse"
             x1={horizontal ? 0 : geo.wire}
             y1={horizontal ? geo.wire : 0}
-            x2={horizontal ? len : geo.wire}
-            y2={horizontal ? geo.wire : len}
+            x2={horizontal ? safeLen : geo.wire}
+            y2={horizontal ? geo.wire : safeLen}
           >
             <stop offset="0" stopColor="var(--gc-edge)" />
-            <stop offset={Math.max(0, head / len - 0.16)} stopColor="color-mix(in oklab, var(--gc-accent) 45%, var(--gc-edge))" />
-            <stop offset={head / len} stopColor="var(--gc-accent-hot)" />
-            <stop offset={Math.min(1, head / len + 0.22)} stopColor="var(--gc-accent)" />
+            <stop offset={Math.max(0, headRatio - 0.16)} stopColor="color-mix(in oklab, var(--gc-accent) 45%, var(--gc-edge))" />
+            <stop offset={headRatio} stopColor="var(--gc-accent-hot)" />
+            <stop offset={Math.min(1, headRatio + 0.22)} stopColor="var(--gc-accent)" />
             <stop offset="1" stopColor="color-mix(in oklab, var(--gc-accent) 25%, var(--gc-edge))" />
           </linearGradient>
         </defs>
