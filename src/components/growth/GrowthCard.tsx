@@ -246,6 +246,7 @@ export function GrowthCard({ data = followers, theme = "lime", className = "" }:
                 onInteract={onInteract}
                 pulseKey={burstKey}
                 hint={hint}
+                showHintLabel={false}
               />
             </div>
           </div>

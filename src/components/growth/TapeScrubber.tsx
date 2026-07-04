@@ -126,6 +126,7 @@ export function TapeScrubber({
   pulseKey = 0,
   horizontal = false,
   hint = false,
+  showHintLabel = true,
 }: {
   series: MetricSeries;
   progress: MotionValue<number>;
@@ -140,6 +141,7 @@ export function TapeScrubber({
   pulseKey?: number;
   horizontal?: boolean;
   hint?: boolean;
+  showHintLabel?: boolean;
 }) {
   const reduce = useReducedMotion();
   const uid = useId();
@@ -566,7 +568,7 @@ export function TapeScrubber({
 
       {/* Drag affordance — retired on first touch */}
       <AnimatePresence>
-        {hint && (
+        {hint && showHintLabel && (
           <motion.span
             key="hint"
             className="panel-label pointer-events-none absolute text-[10px]"
