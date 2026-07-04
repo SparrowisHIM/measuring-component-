@@ -116,9 +116,9 @@ body {
 
 /* Tabular figures for any rolling numeric readout. */
 .tabular {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "zero" 1;
+  font-feature-settings: "tnum" 1, "zero" 0;
 }
 
 /* Card layout is CSS-selected so mobile paints stacked before hydration. */
