@@ -155,12 +155,12 @@ export function TapeScrubber({
     const ro = new ResizeObserver(([entry]) => {
       const box = entry.contentRect;
       const nextLen = Math.round(horizontal ? box.width : box.height);
-      if (nextLen > 0) setLen(nextLen);
+      if (Number.isFinite(nextLen) && nextLen > 0) setLen(nextLen);
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, [horizontal]);
-  const safeLen = Math.max(1, len);
+  const safeLen = Number.isFinite(len) && len > 0 ? len : 1;
   const head = safeLen * (horizontal ? 0.5 : 0.46);
 
   // Tape layout: horizontally time runs left -> right; vertically the scale
@@ -385,7 +385,11 @@ export function TapeScrubber({
 
   const activePoint = series.points[active];
   const gradientId = `${uid}-wire`;
-  const headRatio = head / safeLen;
+  const headRatio = clamp01(
+    Number.isFinite(head / safeLen) ? head / safeLen : horizontal ? 0.5 : 0.46,
+  );
+  const gradientHeadStart = clamp01(headRatio - 0.16);
+  const gradientHeadEnd = clamp01(headRatio + 0.22);
 
   // Knob rests where the pocket floor is — pressed into the wire — and
   // rides its elastic nudge along the tape axis.
@@ -524,9 +528,9 @@ export function TapeScrubber({
             y2={horizontal ? geo.wire : safeLen}
           >
             <stop offset="0" stopColor="var(--gc-edge)" />
-            <stop offset={Math.max(0, headRatio - 0.16)} stopColor="color-mix(in oklab, var(--gc-accent) 45%, var(--gc-edge))" />
+            <stop offset={gradientHeadStart} stopColor="color-mix(in oklab, var(--gc-accent) 45%, var(--gc-edge))" />
             <stop offset={headRatio} stopColor="var(--gc-accent-hot)" />
-            <stop offset={Math.min(1, headRatio + 0.22)} stopColor="var(--gc-accent)" />
+            <stop offset={gradientHeadEnd} stopColor="var(--gc-accent)" />
             <stop offset="1" stopColor="color-mix(in oklab, var(--gc-accent) 25%, var(--gc-edge))" />
           </linearGradient>
         </defs>
