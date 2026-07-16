@@ -34,7 +34,7 @@ export type MetricSeries = {
 
 export const followers: MetricSeries = {
   label: "Followers",
-  owner: { name: "Efe Ebomwonyi", handle: "@SparrowisHIM", verified: true, avatar: "/avatar.jpg" },
+  owner: { name: "Efe Ebomwonyi", handle: "@SparrowisHIM", verified: true, avatar: "/avatar.png" },
   milestones: [1000, 5000, 10000],
   points: [
     { label: "Mar 2024", value: 100 },
@@ -58,7 +58,7 @@ export const followers: MetricSeries = {
 
 export const stars: MetricSeries = {
   label: "GitHub Stars",
-  owner: { name: "Efe Ebomwonyi", handle: "@SparrowisHIM", verified: false, avatar: "/avatar.jpg" },
+  owner: { name: "Efe Ebomwonyi", handle: "@SparrowisHIM", verified: false, avatar: "/avatar.png" },
   milestones: [500, 2500, 5000],
   points: [
     { label: "Jul 2024", value: 40 },
